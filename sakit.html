@@ -71,74 +71,72 @@
     </div>
 
     <div class="card">
-      <div class="grid">
-        <div class="full">
-          <label for="nama">Nama</label>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <select id="nama">
-              <option value="ABIEL">ABIEL</option>
-              <option value="PAPA">PAPA</option>
-              <option value="MAMA">MAMA</option>
-            </select>
-            <button class="btn-ghost" id="btnHistory">📜 Lihat History</button>
-            <button class="btn-ghost" id="btnFileHistory">🗂️ Riwayat File</button>
+      <!-- ========= IFRAME UNTUK RESPON POST (tanpa CORS) ========= -->
+      <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
+
+      <!-- ========= SATU FORM UNTUK DATA + FILE ========= -->
+      <form id="allForm" action="" method="post" target="upload_iframe" enctype="multipart/form-data">
+        <input type="hidden" name="act" value="uploadAndSave">
+
+        <div class="grid">
+          <div class="full">
+            <label for="nama">Nama</label>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <select id="nama" name="nama">
+                <option value="ABIEL">ABIEL</option>
+                <option value="PAPA">PAPA</option>
+                <option value="MAMA">MAMA</option>
+              </select>
+              <button type="button" class="btn-ghost" id="btnHistory">📜 Lihat History</button>
+              <button type="button" class="btn-ghost" id="btnFileHistory">🗂️ Riwayat File</button>
+            </div>
+          </div>
+          <div>
+            <label for="tanggal">Tanggal</label>
+            <input type="date" id="tanggal" name="tanggal" />
           </div>
         </div>
-        <div>
-          <label for="tanggal">Tanggal</label>
-          <input type="date" id="tanggal" />
-        </div>
-      </div>
 
-      <div class="grid" style="margin-top:12px">
-        <div class="full">
-          <label for="sakit">Sakit</label>
-          <textarea id="sakit" placeholder="Keluhan/gejala..."></textarea>
-        </div>
-        <div class="full">
-          <label for="obat">Obat</label>
-          <textarea id="obat" placeholder="Nama obat, dosis, jadwal..."></textarea>
-        </div>
-        <div class="full">
-          <label for="periksa">Periksa</label>
-          <textarea id="periksa" placeholder="Rencana/hasil periksa..."></textarea>
-        </div>
+        <div class="grid" style="margin-top:12px">
+          <div class="full">
+            <label for="sakit">Sakit</label>
+            <textarea id="sakit" name="sakit" placeholder="Keluhan/gejala..."></textarea>
+          </div>
+          <div class="full">
+            <label for="obat">Obat</label>
+            <textarea id="obat" name="obat" placeholder="Nama obat, dosis, jadwal..."></textarea>
+          </div>
+          <div class="full">
+            <label for="periksa">Periksa</label>
+            <textarea id="periksa" name="periksa" placeholder="Rencana/hasil periksa..."></textarea>
+          </div>
 
-        <!-- ===== Upload Section (dipindah ke bawah Periksa) ===== -->
-        <div class="full">
-          <h3 style="margin:12px 0 6px">Lampirkan File (opsional)</h3>
-          <p class="muted" style="margin-top:0">Contoh: hasil lab, foto resep, rujukan, dsb. File akan tersimpan ke Google Drive.</p>
+          <!-- ===== Upload Section (opsional) ===== -->
+          <div class="full">
+            <h3 style="margin:12px 0 6px">Lampirkan File (opsional)</h3>
+            <p class="muted" style="margin-top:0">Contoh: hasil lab, foto resep, rujukan, dsb. File akan tersimpan ke Google Drive.</p>
 
-          <!-- Hidden iframe untuk menerima respon dari GAS -->
-          <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
-
-          <!-- Form upload langsung ke GAS -->
-          <form id="uploadForm" action="" method="post" target="upload_iframe" enctype="multipart/form-data">
-            <input type="hidden" name="act" value="upload">
-            <input type="hidden" name="nama" id="upload_nama">
             <div class="grid">
               <div class="full">
                 <label for="file">File</label>
                 <input type="file" id="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt,.doc,.docx,.xls,.xlsx" />
               </div>
               <div class="full">
-                <label for="ket">Keterangan</label>
+                <label for="ket">Keterangan File</label>
                 <textarea id="ket" name="ket" placeholder="Contoh: Hasil lab darah tanggal ..."></textarea>
               </div>
             </div>
-            <div class="actions">
-              <button class="btn-ghost" type="submit" id="btnDoUpload">⬆️ Upload File</button>
-              <div id="flashUpload" class="alert"></div>
-            </div>
-          </form>
+            <div id="flashUpload" class="alert"></div>
+          </div>
+          <!-- ===== End Upload Section ===== -->
         </div>
-        <!-- ===== End Upload Section ===== -->
-      </div>
 
-      <div class="actions">
-        <button class="btn-primary" id="btnSave">💾 Simpan</button>
-        <div id="flash" class="alert"></div>
-      </div>
+        <div class="actions">
+          <button class="btn-primary" id="btnSave" type="submit">💾 Simpan</button>
+          <div id="flash" class="alert"></div>
+        </div>
+      </form>
+
       <div class="note">Data disimpan ke Google Sheets (Timestamp di kolom pertama). Upload file diarahkan ke Google Drive (link with anyone).</div>
     </div>
   </div>
@@ -176,7 +174,10 @@
     // ==== URL GAS ====
     const API_URL = 'https://script.google.com/macros/s/AKfycbw-5XENKGU_m9j01pIMJckbpeT_MJ2s8JafhP9B2OFyjx8hCep8O1vnTSZ3FAAeh2K0/exec';
 
-    // ==== JSONP util ====
+    // Set form action ke GAS
+    document.getElementById('allForm').action = API_URL;
+
+    // ==== JSONP util untuk GET (history & files) ====
     function jsonp(url) {
       return new Promise((resolve, reject) => {
         const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
@@ -187,17 +188,6 @@
         s.onerror = () => { reject(new Error('JSONP error')); delete window[cb]; s.remove(); };
         document.body.appendChild(s);
       });
-    }
-    function apiSave(payload){
-      const q = new URLSearchParams({
-        act:'save',
-        nama: payload.nama,
-        tanggal: payload.tanggal,
-        sakit: payload.sakit || '',
-        obat: payload.obat || '',
-        periksa: payload.periksa || ''
-      });
-      return jsonp(API_URL + '?' + q.toString());
     }
     function apiHistory(nama){
       const q = new URLSearchParams({ act:'history', nama });
@@ -224,23 +214,39 @@
       setTimeout(()=>{ box.style.display='none'; },3000);
     };
 
-    // ===== Simpan Catatan =====
-    qs('btnSave').addEventListener('click', async function(){
-      const payload={
-        nama: qs('nama').value,
-        tanggal: qs('tanggal').value,
-        sakit: qs('sakit').value.trim(),
-        obat: qs('obat').value.trim(),
-        periksa: qs('periksa').value.trim()
-      };
-      if(!payload.nama || !payload.tanggal){ flash('err','Nama dan Tanggal wajib diisi'); return; }
-      this.disabled=true; this.textContent='⏳ Menyimpan...';
-      try{
-        const res = await apiSave(payload);
-        if(res && res.ok){ flash('ok','Data tersimpan'); }
-        else{ throw new Error(res && res.error ? res.error : 'Gagal menyimpan'); }
-      }catch(err){ flash('err', err.message || 'Terjadi kesalahan'); }
-      finally{ this.disabled=false; this.textContent='💾 Simpan'; }
+    // ===== SUBMIT SATU TOMBOL: kirim data + file =====
+    const allForm = qs('allForm');
+    const btnSave = qs('btnSave');
+
+    allForm.addEventListener('submit', function(){
+      // pastikan act=uploadAndSave
+      // (sudah di-hidden input). Optional validasi:
+      const nama = qs('nama').value;
+      const tanggal = qs('tanggal').value;
+      if(!nama || !tanggal){
+        event.preventDefault();
+        flash('err','Nama dan Tanggal wajib diisi');
+        return;
+      }
+      btnSave.disabled = true;
+      btnSave.textContent = '⏳ Memproses...';
+      flash('ok','Mengirim data...', 'flash');
+    });
+
+    // Terima hasil dari GAS (postMessage dari doPost)
+    window.addEventListener('message', (ev)=>{
+      if(!ev.data || ev.data.type !== 'uploadResult') return;
+      btnSave.disabled = false;
+      btnSave.textContent = '💾 Simpan';
+      if(ev.data.ok){
+        const info = ev.data.uploaded ? ` (file: ${ev.data.uploaded.name})` : '';
+        flash('ok', 'Tersimpan' + info);
+        // reset file & keterangan (opsional reset juga field lain)
+        qs('file').value = '';
+        qs('ket').value = '';
+      }else{
+        flash('err', ev.data.error || 'Gagal menyimpan');
+      }
     });
 
     // ===== History Catatan =====
@@ -317,32 +323,6 @@
       table.appendChild(tbody);
       qs('historyRoot').innerHTML=''; qs('historyRoot').appendChild(table);
     }
-
-    // ===== Upload File (inline) =====
-    const formUpload  = qs('uploadForm');
-    const uploadNama  = qs('upload_nama');
-    formUpload.action = API_URL;            // arahkan form langsung ke GAS /exec
-    formUpload.addEventListener('submit', (ev)=>{
-      // isi nama sebelum submit
-      uploadNama.value = qs('nama').value || '';
-      const fileField = qs('file');
-      if (!fileField.files || fileField.files.length === 0) {
-        ev.preventDefault();
-        flash('err','Pilih file dulu ya','flashUpload');
-      } else {
-        flash('ok','Mengunggah...','flashUpload');
-      }
-    });
-
-    // terima hasil dari GAS (postMessage)
-    window.addEventListener('message', (ev)=>{
-      if(!ev.data || ev.data.type !== 'uploadResult') return;
-      if(ev.data.ok){
-        flash('ok', `Upload sukses: ${ev.data.fileName}`, 'flashUpload');
-      }else{
-        flash('err', ev.data.error || 'Upload gagal', 'flashUpload');
-      }
-    });
 
     // ===== Riwayat File =====
     const modalFiles = qs('modalFiles');
