@@ -21,14 +21,9 @@
     .logo{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-2));box-shadow:0 10px 24px rgba(79,70,229,.25)}
     .title h1{margin:0;font-size:28px;letter-spacing:.2px}
     .title p{margin:4px 0 0;color:var(--muted)}
-
-    .card{
-      background:var(--card); border:1px solid var(--border);
-      border-radius:16px; padding:20px; box-shadow:0 10px 20px rgba(0,0,0,.06);
-    }
+    .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 10px 20px rgba(0,0,0,.06)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .full{grid-column:1/-1}
-
     label{display:block;font-weight:600;margin:6px 0 8px}
     select,input[type=date],textarea{
       width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);
@@ -36,19 +31,16 @@
     }
     select:focus,input[type=date]:focus,textarea:focus{border-color:var(--ring);box-shadow:0 0 0 4px rgba(165,180,252,.35)}
     textarea{min-height:110px;resize:vertical}
-
     .actions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
     button{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;transition:.2s}
     .btn-primary{background:linear-gradient(135deg,var(--primary),#6366f1);color:#fff}
     .btn-primary:hover{transform:translateY(-1px)}
     .btn-ghost{background:#f3f4f6;color:var(--text);border:1px solid var(--border)}
     .btn-ghost:hover{background:#eef2ff}
-
     .note{color:var(--muted);font-size:13px;margin-top:8px}
     .alert{display:none;margin-top:8px;border-radius:12px;padding:10px 12px;font-weight:600}
     .ok{display:block;background:#dcfce7;border:1px solid #bbf7d0;color:#065f46}
     .err{display:block;background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d}
-
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.25)}
     .modal.open{display:flex}
     .sheet{width:min(100%,960px)}
@@ -61,6 +53,7 @@
     .table th{color:#374151;font-size:13px;background:#f9fafb}
     .empty{padding:28px;text-align:center;color:#6b7280}
     @media (max-width:720px){.grid{grid-template-columns:1fr}}
+    .muted{color:#6b7280;font-size:12px}
   </style>
 </head>
 <body>
@@ -73,7 +66,7 @@
       </div>
       <div class="title">
         <h1>Catatan Kesehatan Keluarga</h1>
-        <p>Form cepat + rekapan riwayat untuk ABIEL · PAPA · MAMA</p>
+        <p>Form catatan kesehatan + riwayat & upload file (lab, resep, dsb.)</p>
       </div>
     </div>
 
@@ -87,9 +80,9 @@
               <option value="PAPA">PAPA</option>
               <option value="MAMA">MAMA</option>
             </select>
-            <button class="btn-ghost" id="btnHistory" title="Lihat riwayat">
-              📜 Lihat History
-            </button>
+            <button class="btn-ghost" id="btnHistory">📜 Lihat History</button>
+            <button class="btn-ghost" id="btnFileHistory">🗂️ Riwayat File</button>
+            <button class="btn-ghost" id="btnUpload">⬆️ Upload File</button>
           </div>
         </div>
         <div>
@@ -117,17 +110,17 @@
         <button class="btn-primary" id="btnSave">💾 Simpan</button>
         <div id="flash" class="alert"></div>
       </div>
-      <div class="note">Catatan kesehatan pribadi. <b>Menyangkut history kesehatan keluarga</b>.</div>
+      <div class="note">Data disimpan ke Google Sheets (Timestamp di kolom pertama). Upload file diarahkan ke Google Drive.</div>
     </div>
   </div>
 
-  <!-- Modal History -->
+  <!-- Modal Data History -->
   <div class="modal" id="modal" aria-hidden="true">
     <div class="sheet card2">
       <header>
         <strong id="modalTitle">History</strong>
         <div class="tools">
-          <input type="search" id="q" placeholder="Cari teks di tabel..." />
+          <input type="search" id="q" placeholder="Cari di tabel..." />
           <button class="btn-ghost" id="btnSort">🔽 Urut: Terbaru</button>
           <button class="btn-ghost" id="btnClose">Tutup</button>
         </div>
@@ -136,11 +129,61 @@
     </div>
   </div>
 
+  <!-- Modal File History -->
+  <div class="modal" id="modalFiles" aria-hidden="true">
+    <div class="sheet card2">
+      <header>
+        <strong id="modalFilesTitle">Riwayat File</strong>
+        <div class="tools">
+          <input type="search" id="qFiles" placeholder="Cari file..." />
+          <button class="btn-ghost" id="btnCloseFiles">Tutup</button>
+        </div>
+      </header>
+      <div id="filesRoot"></div>
+    </div>
+  </div>
+
+  <!-- Modal Upload -->
+  <div class="modal" id="modalUpload" aria-hidden="true">
+    <div class="sheet card2">
+      <header>
+        <strong>Upload File</strong>
+        <div class="tools">
+          <button class="btn-ghost" id="btnCloseUpload">Tutup</button>
+        </div>
+      </header>
+      <div style="padding:16px">
+        <p class="muted">Pilih file (PDF/JPG/PNG dsb.) untuk diunggah ke Google Drive. Tambahkan keterangan jika perlu.</p>
+        <!-- Hidden iframe untuk menerima respon dari GAS (tanpa CORS) -->
+        <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
+        <!-- Form upload ke GAS -->
+        <form id="uploadForm" action="" method="post" target="upload_iframe" enctype="multipart/form-data">
+          <input type="hidden" name="act" value="upload">
+          <input type="hidden" name="nama" id="upload_nama">
+          <div class="grid">
+            <div class="full">
+              <label for="file">File</label>
+              <input type="file" id="file" name="file" required />
+            </div>
+            <div class="full">
+              <label for="ket">Keterangan</label>
+              <textarea id="ket" name="ket" placeholder="Contoh: Hasil cek lab darah, rujukan RS, dsb."></textarea>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-primary" type="submit" id="btnDoUpload">⬆️ Upload</button>
+            <div id="flashUpload" class="alert"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // ==== URL GAS ====
+    /* ==== URL GAS ==== */
     const API_URL = 'https://script.google.com/macros/s/AKfycbw-5XENKGU_m9j01pIMJckbpeT_MJ2s8JafhP9B2OFyjx8hCep8O1vnTSZ3FAAeh2K0/exec';
 
-    // JSONP util
+    /* ==== JSONP util ==== */
     function jsonp(url) {
       return new Promise((resolve, reject) => {
         const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
@@ -152,7 +195,6 @@
         document.body.appendChild(s);
       });
     }
-
     function apiSave(payload){
       const q = new URLSearchParams({
         act:'save',
@@ -164,13 +206,16 @@
       });
       return jsonp(API_URL + '?' + q.toString());
     }
-
     function apiHistory(nama){
       const q = new URLSearchParams({ act:'history', nama });
       return jsonp(API_URL + '?' + q.toString());
     }
+    function apiFiles(nama){
+      const q = new URLSearchParams({ act:'files', nama });
+      return jsonp(API_URL + '?' + q.toString());
+    }
 
-    // Prefill tanggal hari ini
+    /* ==== Prefill tanggal hari ini ==== */
     (function(){
       const el=document.getElementById('tanggal');
       const n=new Date();
@@ -179,13 +224,14 @@
     })();
 
     const qs=id=>document.getElementById(id);
-    const flash=(type,msg)=>{
-      const box=qs('flash');
+    const flash=(type,msg,boxId='flash')=>{
+      const box=qs(boxId);
       box.className=`alert ${type==='err'?'err':'ok'}`;
       box.textContent=msg; box.style.display='block';
       setTimeout(()=>{ box.style.display='none'; },3000);
     };
 
+    /* ==== Simpan catatan ==== */
     qs('btnSave').addEventListener('click', async function(){
       const payload={
         nama: qs('nama').value,
@@ -204,8 +250,8 @@
       finally{ this.disabled=false; this.textContent='💾 Simpan'; }
     });
 
+    /* ==== History catatan ==== */
     let _rawRows=[]; let _sortDesc=true;
-
     qs('btnHistory').addEventListener('click', async function(){
       const nama=qs('nama').value;
       qs('modalTitle').textContent=`History: ${nama}`;
@@ -220,7 +266,6 @@
         qs('historyRoot').innerHTML=`<div class="empty">Error: ${err.message}</div>`;
       }
     });
-
     qs('btnClose').addEventListener('click',()=>{ qs('modal').classList.remove('open'); });
     qs('btnSort').addEventListener('click',()=>{
       _sortDesc=!_sortDesc;
@@ -248,7 +293,6 @@
       }
       return v||'';
     }
-
     function filterAndSort(rows, q, desc){
       if(!Array.isArray(rows)) return [];
       let data=[...rows];
@@ -259,7 +303,6 @@
       data.sort((a,b)=> desc ? (a.Timestamp<b.Timestamp?1:-1) : (a.Timestamp>b.Timestamp?1:-1));
       return data;
     }
-
     function renderHistoryTable(rows){
       if(!rows||rows.length===0){
         qs('historyRoot').innerHTML='<div class="empty">Belum ada data untuk kriteria ini.</div>';
@@ -274,16 +317,87 @@
       rows.forEach(r=>{
         const tr=document.createElement('tr');
         [fmtDateView(r.Tanggal), r.Sakit, r.Obat, r.Periksa, fmtTsView(r.Timestamp)].forEach(c=>{
-          const td=document.createElement('td');
-          td.textContent=c||''; tr.appendChild(td);
+          const td=document.createElement('td'); td.textContent=c||''; tr.appendChild(td);
         });
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-      qs('historyRoot').innerHTML='';
-      qs('historyRoot').appendChild(table);
+      qs('historyRoot').innerHTML=''; qs('historyRoot').appendChild(table);
+    }
+
+    /* ==== Upload File ==== */
+    const modalUpload = qs('modalUpload');
+    const formUpload  = qs('uploadForm');
+    const uploadNama  = qs('upload_nama');
+
+    qs('btnUpload').addEventListener('click', ()=>{
+      uploadNama.value = qs('nama').value;
+      formUpload.action = API_URL;     // arahkan form ke GAS /exec
+      modalUpload.classList.add('open');
+    });
+    qs('btnCloseUpload').addEventListener('click', ()=> modalUpload.classList.remove('open'));
+
+    // Terima hasil dari GAS via postMessage
+    window.addEventListener('message', (ev)=>{
+      if(!ev.data || ev.data.type !== 'uploadResult') return;
+      if(ev.data.ok){
+        flash('ok', `Upload sukses: ${ev.data.fileName}`, 'flashUpload');
+      }else{
+        flash('err', ev.data.error || 'Upload gagal', 'flashUpload');
+      }
+    });
+
+    /* ==== Riwayat File ==== */
+    qs('btnFileHistory').addEventListener('click', async ()=>{
+      const nama = qs('nama').value;
+      qs('modalFilesTitle').textContent = `Riwayat File: ${nama}`;
+      qs('modalFiles').classList.add('open');
+      qs('filesRoot').innerHTML = '<div class="empty">Memuat data…</div>';
+      try {
+        const json = await apiFiles(nama);
+        if(!json.ok) throw new Error(json.error || 'Gagal memuat');
+        renderFilesTable(json.data || []);
+      } catch (err) {
+        qs('filesRoot').innerHTML = `<div class="empty">Error: ${err.message}</div>`;
+      }
+    });
+    qs('btnCloseFiles').addEventListener('click', ()=> qs('modalFiles').classList.remove('open'));
+    qs('qFiles').addEventListener('input', ()=>{
+      // filter langsung isi yang tampil
+      const rows = Array.from(document.querySelectorAll('#filesRoot tbody tr'));
+      const s = qs('qFiles').value.toLowerCase();
+      rows.forEach(tr=>{
+        const text = tr.innerText.toLowerCase();
+        tr.style.display = text.includes(s) ? '' : 'none';
+      });
+    });
+
+    function renderFilesTable(rows){
+      if(!rows || rows.length === 0){
+        qs('filesRoot').innerHTML = '<div class="empty">Belum ada file untuk nama ini.</div>';
+        return;
+      }
+      const table=document.createElement('table'); table.className='table';
+      const thead=document.createElement('thead');
+      const trh=document.createElement('tr');
+      ['File','Keterangan','Timestamp'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
+      thead.appendChild(trh); table.appendChild(thead);
+      const tbody=document.createElement('tbody');
+      rows.forEach(r=>{
+        const tr=document.createElement('tr');
+        // File link
+        const td1=document.createElement('td');
+        const a=document.createElement('a'); a.href=r.FileUrl; a.target='_blank'; a.textContent=r.FileName||'File';
+        td1.appendChild(a); tr.appendChild(td1);
+        // Keterangan
+        const td2=document.createElement('td'); td2.textContent = r.Keterangan || ''; tr.appendChild(td2);
+        // Timestamp
+        const td3=document.createElement('td'); td3.textContent = fmtTsView(r.Timestamp); tr.appendChild(td3);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      qs('filesRoot').innerHTML=''; qs('filesRoot').appendChild(table);
     }
   </script>
 </body>
 </html>
-
