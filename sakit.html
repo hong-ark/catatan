@@ -25,11 +25,11 @@
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .full{grid-column:1/-1}
     label{display:block;font-weight:600;margin:6px 0 8px}
-    select,input[type=date],textarea{
+    select,input[type=date],textarea,input[type=file]{
       width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);
       background:#fff;color:var(--text);outline:none;transition:.2s
     }
-    select:focus,input[type=date]:focus,textarea:focus{border-color:var(--ring);box-shadow:0 0 0 4px rgba(165,180,252,.35)}
+    select:focus,input[type=date]:focus,textarea:focus,input[type=file]:focus{border-color:var(--ring);box-shadow:0 0 0 4px rgba(165,180,252,.35)}
     textarea{min-height:110px;resize:vertical}
     .actions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
     button{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;transition:.2s}
@@ -82,7 +82,6 @@
             </select>
             <button class="btn-ghost" id="btnHistory">📜 Lihat History</button>
             <button class="btn-ghost" id="btnFileHistory">🗂️ Riwayat File</button>
-            <button class="btn-ghost" id="btnUpload">⬆️ Upload File</button>
           </div>
         </div>
         <div>
@@ -104,13 +103,43 @@
           <label for="periksa">Periksa</label>
           <textarea id="periksa" placeholder="Rencana/hasil periksa..."></textarea>
         </div>
+
+        <!-- ===== Upload Section (dipindah ke bawah Periksa) ===== -->
+        <div class="full">
+          <h3 style="margin:12px 0 6px">Lampirkan File (opsional)</h3>
+          <p class="muted" style="margin-top:0">Contoh: hasil lab, foto resep, rujukan, dsb. File akan tersimpan ke Google Drive.</p>
+
+          <!-- Hidden iframe untuk menerima respon dari GAS -->
+          <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
+
+          <!-- Form upload langsung ke GAS -->
+          <form id="uploadForm" action="" method="post" target="upload_iframe" enctype="multipart/form-data">
+            <input type="hidden" name="act" value="upload">
+            <input type="hidden" name="nama" id="upload_nama">
+            <div class="grid">
+              <div class="full">
+                <label for="file">File</label>
+                <input type="file" id="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.txt,.doc,.docx,.xls,.xlsx" />
+              </div>
+              <div class="full">
+                <label for="ket">Keterangan</label>
+                <textarea id="ket" name="ket" placeholder="Contoh: Hasil lab darah tanggal ..."></textarea>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn-ghost" type="submit" id="btnDoUpload">⬆️ Upload File</button>
+              <div id="flashUpload" class="alert"></div>
+            </div>
+          </form>
+        </div>
+        <!-- ===== End Upload Section ===== -->
       </div>
 
       <div class="actions">
         <button class="btn-primary" id="btnSave">💾 Simpan</button>
         <div id="flash" class="alert"></div>
       </div>
-      <div class="note">Data disimpan ke Google Sheets (Timestamp di kolom pertama). Upload file diarahkan ke Google Drive.</div>
+      <div class="note">Data disimpan ke Google Sheets (Timestamp di kolom pertama). Upload file diarahkan ke Google Drive (link with anyone).</div>
     </div>
   </div>
 
@@ -143,47 +172,11 @@
     </div>
   </div>
 
-  <!-- Modal Upload -->
-  <div class="modal" id="modalUpload" aria-hidden="true">
-    <div class="sheet card2">
-      <header>
-        <strong>Upload File</strong>
-        <div class="tools">
-          <button class="btn-ghost" id="btnCloseUpload">Tutup</button>
-        </div>
-      </header>
-      <div style="padding:16px">
-        <p class="muted">Pilih file (PDF/JPG/PNG dsb.) untuk diunggah ke Google Drive. Tambahkan keterangan jika perlu.</p>
-        <!-- Hidden iframe untuk menerima respon dari GAS (tanpa CORS) -->
-        <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
-        <!-- Form upload ke GAS -->
-        <form id="uploadForm" action="" method="post" target="upload_iframe" enctype="multipart/form-data">
-          <input type="hidden" name="act" value="upload">
-          <input type="hidden" name="nama" id="upload_nama">
-          <div class="grid">
-            <div class="full">
-              <label for="file">File</label>
-              <input type="file" id="file" name="file" required />
-            </div>
-            <div class="full">
-              <label for="ket">Keterangan</label>
-              <textarea id="ket" name="ket" placeholder="Contoh: Hasil cek lab darah, rujukan RS, dsb."></textarea>
-            </div>
-          </div>
-          <div class="actions">
-            <button class="btn-primary" type="submit" id="btnDoUpload">⬆️ Upload</button>
-            <div id="flashUpload" class="alert"></div>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
   <script>
-    /* ==== URL GAS ==== */
+    // ==== URL GAS ====
     const API_URL = 'https://script.google.com/macros/s/AKfycbw-5XENKGU_m9j01pIMJckbpeT_MJ2s8JafhP9B2OFyjx8hCep8O1vnTSZ3FAAeh2K0/exec';
 
-    /* ==== JSONP util ==== */
+    // ==== JSONP util ====
     function jsonp(url) {
       return new Promise((resolve, reject) => {
         const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
@@ -215,7 +208,7 @@
       return jsonp(API_URL + '?' + q.toString());
     }
 
-    /* ==== Prefill tanggal hari ini ==== */
+    // Prefill tanggal sekarang
     (function(){
       const el=document.getElementById('tanggal');
       const n=new Date();
@@ -231,7 +224,7 @@
       setTimeout(()=>{ box.style.display='none'; },3000);
     };
 
-    /* ==== Simpan catatan ==== */
+    // ===== Simpan Catatan =====
     qs('btnSave').addEventListener('click', async function(){
       const payload={
         nama: qs('nama').value,
@@ -250,7 +243,7 @@
       finally{ this.disabled=false; this.textContent='💾 Simpan'; }
     });
 
-    /* ==== History catatan ==== */
+    // ===== History Catatan =====
     let _rawRows=[]; let _sortDesc=true;
     qs('btnHistory').addEventListener('click', async function(){
       const nama=qs('nama').value;
@@ -261,7 +254,8 @@
         const json = await apiHistory(nama);
         if(!json.ok) throw new Error(json.error||'Gagal memuat');
         _rawRows=json.data||[];
-        renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
+        renderHistoryTable(filterAndSort(_rawRows, '', _sortDesc));
+        qs('q').value='';
       }catch(err){
         qs('historyRoot').innerHTML=`<div class="empty">Error: ${err.message}</div>`;
       }
@@ -309,8 +303,7 @@
         return;
       }
       const table=document.createElement('table'); table.className='table';
-      const thead=document.createElement('thead');
-      const trh=document.createElement('tr');
+      const thead=document.createElement('thead'); const trh=document.createElement('tr');
       ['Tanggal','Sakit','Obat','Periksa','Timestamp'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
       thead.appendChild(trh); table.appendChild(thead);
       const tbody=document.createElement('tbody');
@@ -325,19 +318,23 @@
       qs('historyRoot').innerHTML=''; qs('historyRoot').appendChild(table);
     }
 
-    /* ==== Upload File ==== */
-    const modalUpload = qs('modalUpload');
+    // ===== Upload File (inline) =====
     const formUpload  = qs('uploadForm');
     const uploadNama  = qs('upload_nama');
-
-    qs('btnUpload').addEventListener('click', ()=>{
-      uploadNama.value = qs('nama').value;
-      formUpload.action = API_URL;     // arahkan form ke GAS /exec
-      modalUpload.classList.add('open');
+    formUpload.action = API_URL;            // arahkan form langsung ke GAS /exec
+    formUpload.addEventListener('submit', (ev)=>{
+      // isi nama sebelum submit
+      uploadNama.value = qs('nama').value || '';
+      const fileField = qs('file');
+      if (!fileField.files || fileField.files.length === 0) {
+        ev.preventDefault();
+        flash('err','Pilih file dulu ya','flashUpload');
+      } else {
+        flash('ok','Mengunggah...','flashUpload');
+      }
     });
-    qs('btnCloseUpload').addEventListener('click', ()=> modalUpload.classList.remove('open'));
 
-    // Terima hasil dari GAS via postMessage
+    // terima hasil dari GAS (postMessage)
     window.addEventListener('message', (ev)=>{
       if(!ev.data || ev.data.type !== 'uploadResult') return;
       if(ev.data.ok){
@@ -347,11 +344,12 @@
       }
     });
 
-    /* ==== Riwayat File ==== */
+    // ===== Riwayat File =====
+    const modalFiles = qs('modalFiles');
     qs('btnFileHistory').addEventListener('click', async ()=>{
       const nama = qs('nama').value;
       qs('modalFilesTitle').textContent = `Riwayat File: ${nama}`;
-      qs('modalFiles').classList.add('open');
+      modalFiles.classList.add('open');
       qs('filesRoot').innerHTML = '<div class="empty">Memuat data…</div>';
       try {
         const json = await apiFiles(nama);
@@ -361,9 +359,8 @@
         qs('filesRoot').innerHTML = `<div class="empty">Error: ${err.message}</div>`;
       }
     });
-    qs('btnCloseFiles').addEventListener('click', ()=> qs('modalFiles').classList.remove('open'));
+    qs('btnCloseFiles').addEventListener('click', ()=> modalFiles.classList.remove('open'));
     qs('qFiles').addEventListener('input', ()=>{
-      // filter langsung isi yang tampil
       const rows = Array.from(document.querySelectorAll('#filesRoot tbody tr'));
       const s = qs('qFiles').value.toLowerCase();
       rows.forEach(tr=>{
@@ -385,13 +382,10 @@
       const tbody=document.createElement('tbody');
       rows.forEach(r=>{
         const tr=document.createElement('tr');
-        // File link
         const td1=document.createElement('td');
         const a=document.createElement('a'); a.href=r.FileUrl; a.target='_blank'; a.textContent=r.FileName||'File';
         td1.appendChild(a); tr.appendChild(td1);
-        // Keterangan
         const td2=document.createElement('td'); td2.textContent = r.Keterangan || ''; tr.appendChild(td2);
-        // Timestamp
         const td3=document.createElement('td'); td3.textContent = fmtTsView(r.Timestamp); tr.appendChild(td3);
         tbody.appendChild(tr);
       });
