@@ -1,75 +1,252 @@
+
 <!DOCTYPE html>
-<div>
-<label for="tanggal">Tanggal</label>
-<input type="date" id="tanggal" />
-</div>
-</div>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catatan Kesehatan Keluarga</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0b1220;--fg:#0f172a;--card:#0b1220cc;--muted:#90a4ae;--primary:#7c3aed;--primary-2:#22d3ee;--ring:#a78bfa;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:#e5e7eb;background:
+      radial-gradient(1200px 600px at -10% -10%, rgba(124,58,237,.35), transparent 70%),
+      radial-gradient(1200px 600px at 110% 10%, rgba(34,211,238,.30), transparent 70%),
+      linear-gradient(180deg,#0b1220 0%, #0b1220 60%, #0f172a 100%);
+    }
+    a{color:inherit}
 
+    .wrap{max-width:980px;margin:48px auto;padding:0 20px}
+    .hero{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .logo{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-2));box-shadow:0 10px 30px rgba(124,58,237,.35)}
+    .title h1{margin:0;font-size:28px;letter-spacing:.2px}
+    .title p{margin:4px 0 0;color:#cbd5e1}
 
-<div class="grid" style="margin-top:16px;">
-<div class="full">
-<label for="sakit">Sakit</label>
-<textarea id="sakit" placeholder="Keluhan/gejala..."></textarea>
-</div>
-<div class="full">
-<label for="obat">Obat</label>
-<textarea id="obat" placeholder="Nama obat, dosis, jadwal..."></textarea>
-</div>
-<div class="full">
-<label for="periksa">Periksa</label>
-<textarea id="periksa" placeholder="Rencana/hasil periksa..."></textarea>
-</div>
-</div>
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .full{grid-column:1/-1}
 
-<div class="actions">
-<button class="primary" id="btnSave">Simpan</button>
-<div id="flash" style="display:none"></div>
-</div>
+    label{display:block;font-weight:600;margin:6px 0 8px}
+    select,input[type=date],textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.25);background:rgba(2,6,23,.35);color:#e2e8f0;outline:none;transition:.2s}
+    select:focus,input[type=date]:focus,textarea:focus{border-color:var(--ring);box-shadow:0 0 0 4px rgba(167,139,250,.18)}
+    textarea{min-height:110px;resize:vertical}
 
+    .actions{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+    button{display:inline-flex;align-items:center;gap:10px;border:0;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer;transition:.2s}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:white}
+    .btn-primary:hover{transform:translateY(-1px)}
+    .btn-ghost{background:rgba(255,255,255,.06);color:#e2e8f0;border:1px solid rgba(255,255,255,.08)}
+    .btn-ghost:hover{background:rgba(255,255,255,.10)}
 
-<div class="muted" style="margin-top:8px;">Backend: Apps Script Web App (`/exec`). Timestamp di kolom pertama.</div>
-</div>
+    .note{color:#cbd5e1;font-size:13px;margin-top:8px}
 
+    .alert{display:none;margin-top:8px;border-radius:12px;padding:10px 12px;font-weight:600}
+    .ok{display:block;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#bbf7d0}
+    .err{display:block;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#fecaca}
 
-<!-- Modal History -->
-<div class="modal" id="modal">
-<div class="card">
-<header>
-<h3 id="modalTitle" style="margin:0">History</h3>
-<div class="row">
-<button class="ghost" id="btnClose">Tutup</button>
-</div>
-</header>
-<div id="historyRoot"></div>
-</div>
-</div>
+    /* Modal */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,23,.6)}
+    .modal.open{display:flex}
+    .sheet{width:min(100%,960px)}
+    .card2{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .card2 header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .tools{display:flex;gap:8px;flex-wrap:wrap}
+    .tools input{padding:10px 12px;border-radius:10px;border:1px solid rgba(148,163,184,.25);background:rgba(2,6,23,.35);color:#e2e8f0}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid rgba(255,255,255,.08);padding:12px 10px;text-align:left;vertical-align:top}
+    .table th{color:#cbd5e1;font-size:13px}
+    .empty{padding:28px;text-align:center;color:#cbd5e1}
 
+    @media (max-width:720px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="logo" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3l3.5 7H22l-5.5 4 2.1 7L12 17l-6.6 4 2.1-7L2 10h6.5L12 3z" fill="white"/>
+        </svg>
+      </div>
+      <div class="title">
+        <h1>Catatan Kesehatan Keluarga</h1>
+        <p>Form cepat + rekapan riwayat untuk ABIEL · PAPA · MAMA</p>
+      </div>
+    </div>
 
-<script>
-// ==== KONFIGURASI: Ganti URL di bawah ini ====
-const API_URL = 'PASTE_WEB_APP_URL_HERE'; // contoh: https://script.google.com/macros/s/AKfycbx.../exec
+    <div class="card">
+      <div class="grid">
+        <div class="full">
+          <label for="nama">Nama</label>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <select id="nama">
+              <option value="ABIEL">ABIEL</option>
+              <option value="PAPA">PAPA</option>
+              <option value="MAMA">MAMA</option>
+            </select>
+            <button class="btn-ghost" id="btnHistory" title="Lihat riwayat">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 8v5l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12a9 9 0 1 1-9-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Lihat History
+            </button>
+          </div>
+        </div>
+        <div>
+          <label for="tanggal">Tanggal</label>
+          <input type="date" id="tanggal" />
+        </div>
+      </div>
 
+      <div class="grid" style="margin-top:12px">
+        <div class="full">
+          <label for="sakit">Sakit</label>
+          <textarea id="sakit" placeholder="Keluhan/gejala..."></textarea>
+        </div>
+        <div class="full">
+          <label for="obat">Obat</label>
+          <textarea id="obat" placeholder="Nama obat, dosis, jadwal..."></textarea>
+        </div>
+        <div class="full">
+          <label for="periksa">Periksa</label>
+          <textarea id="periksa" placeholder="Rencana/hasil periksa..."></textarea>
+        </div>
+      </div>
 
-// Prefill tanggal = hari ini (zona waktu browser)
-(function initDateToday() {
-const el = document.getElementById('tanggal');
-const now = new Date();
-const y = now.getFullYear();
-const m = String(now.getMonth() + 1).padStart(2, '0');
-const d = String(now.getDate()).padStart(2, '0');
-el.value = `${y}-${m}-${d}`;
-})();
+      <div class="actions">
+        <button class="btn-primary" id="btnSave">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7l-8 10-4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Simpan
+        </button>
+        <div id="flash" class="alert"></div>
+      </div>
+      <div class="note">Data disimpan ke Google Sheets (kolom pertama: <b>Timestamp</b>).</div>
+    </div>
+  </div>
 
+  <!-- Modal History -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="sheet card2">
+      <header>
+        <strong id="modalTitle">History</strong>
+        <div class="tools">
+          <input type="search" id="q" placeholder="Cari teks di tabel..." />
+          <button class="btn-ghost" id="btnSort">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 9l4-4 4 4M16 15l-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Urut: Terbaru
+          </button>
+          <button class="btn-ghost" id="btnClose">Tutup</button>
+        </div>
+      </header>
+      <div id="historyRoot"></div>
+    </div>
+  </div>
 
-const qs = id => document.getElementById(id);
-const flash = (type, msg) => {
-const box = qs('flash');
-box.className = type === 'err' ? 'err' : 'ok';
-box.textContent = msg;
-box.style.display = 'block';
-setTimeout(() => (box.style.display = 'none'), 3000);
-};
+  <script>
+    // ==== KONFIGURASI: Ganti URL di bawah ini ====
+    const API_URL = 'PASTE_WEB_APP_URL_HERE'; // contoh: https://script.google.com/macros/s/AKfycbx.../exec
 
+    // Prefill tanggal = hari ini
+    (function initDateToday(){
+      const el=document.getElementById('tanggal');
+      const now=new Date();
+      const y=now.getFullYear();
+      const m=String(now.getMonth()+1).padStart(2,'0');
+      const d=String(now.getDate()).padStart(2,'0');
+      el.value=`${y}-${m}-${d}`;
+    })();
 
-qs('btnSave').addEventListener('cli
+    const qs=id=>document.getElementById(id);
+    const flash=(type,msg)=>{
+      const box=qs('flash');
+      box.className=`alert ${type==='err'?'err':'ok'}`;
+      box.textContent=msg; box.style.display='block';
+      setTimeout(()=>{ box.style.display='none'; },3000);
+    };
+
+    qs('btnSave').addEventListener('click', async function(){
+      const payload={
+        nama: qs('nama').value,
+        tanggal: qs('tanggal').value,
+        sakit: qs('sakit').value.trim(),
+        obat: qs('obat').value.trim(),
+        periksa: qs('periksa').value.trim()
+      };
+      if(!payload.nama || !payload.tanggal){ flash('err','Nama dan Tanggal wajib diisi'); return; }
+      this.disabled=true; this.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="2" opacity=".6"/><path d="M12 7v5l3 2" stroke="#fff" stroke-width="2"/></svg> Menyimpan…';
+      try{
+        const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const json=await res.json();
+        if(json && json.ok){ flash('ok','Data tersimpan'); }
+        else{ throw new Error(json && json.error ? json.error : 'Gagal menyimpan'); }
+      }catch(err){ flash('err',err.message||'Terjadi kesalahan'); }
+      finally{ this.disabled=false; this.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7l-8 10-4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Simpan'; }
+    });
+
+    let _rawRows=[]; let _sortDesc=true; // true = terbaru dulu
+
+    qs('btnHistory').addEventListener('click', async function(){
+      const nama=qs('nama').value;
+      qs('modalTitle').textContent=`History: ${nama}`;
+      qs('modal').classList.add('open');
+      qs('historyRoot').innerHTML='<div class="empty">Memuat data…</div>';
+      try{
+        const url=`${API_URL}?act=history&nama=${encodeURIComponent(nama)}`;
+        const res=await fetch(url);
+        const json=await res.json();
+        if(!json.ok) throw new Error(json.error||'Gagal memuat');
+        _rawRows=json.data||[];
+        renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
+      }catch(err){
+        qs('historyRoot').innerHTML=`<div class="empty">Error: ${err.message}</div>`;
+      }
+    });
+
+    qs('btnClose').addEventListener('click',()=>{ qs('modal').classList.remove('open'); });
+    qs('btnSort').addEventListener('click',()=>{
+      _sortDesc=!_sortDesc;
+      qs('btnSort').innerHTML=`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 9l4-4 4 4M16 15l-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Urut: ${_sortDesc?'Terbaru':'Terlama'}`;
+      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
+    });
+    qs('q').addEventListener('input',()=>{
+      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
+    });
+
+    function filterAndSort(rows, q, desc){
+      if(!Array.isArray(rows)) return [];
+      let data=[...rows];
+      if(q){ const s=q.toLowerCase(); data=data.filter(r=>[r.Tanggal,r.Sakit,r.Obat,r.Periksa,r.Timestamp].some(v=>String(v||'').toLowerCase().includes(s))); }
+      data.sort((a,b)=> desc ? (a.Timestamp<b.Timestamp?1:-1) : (a.Timestamp>b.Timestamp?1:-1));
+      return data;
+    }
+
+    function renderHistoryTable(rows){
+      if(!rows||rows.length===0){
+        qs('historyRoot').innerHTML='<div class="empty">Belum ada data untuk kriteria ini.</div>';
+        return;
+      }
+      const table=document.createElement('table'); table.className='table';
+      const thead=document.createElement('thead');
+      const trh=document.createElement('tr');
+      ['Tanggal','Sakit','Obat','Periksa','Timestamp'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
+      thead.appendChild(trh); table.appendChild(thead);
+      const tbody=document.createElement('tbody');
+      rows.forEach(r=>{
+        const tr=document.createElement('tr');
+        [r.Tanggal,r.Sakit,r.Obat,r.Periksa,r.Timestamp].forEach(c=>{ const td=document.createElement('td'); td.textContent=c||''; tr.appendChild(td); });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      qs('historyRoot').innerHTML='';
+      qs('historyRoot').appendChild(table);
+    }
+  </script>
+</body>
+</html>
+```
