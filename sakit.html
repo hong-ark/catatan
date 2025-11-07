@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -9,33 +8,34 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg:#0b1220;--fg:#0f172a;--card:#0b1220cc;--muted:#90a4ae;--primary:#7c3aed;--primary-2:#22d3ee;--ring:#a78bfa;
-    }
+    :root{ --bg:#0b1220; --fg:#0f172a; --primary:#7c3aed; --primary-2:#22d3ee; --ring:#a78bfa; }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:#e5e7eb;background:
+    body{
+      margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:#e5e7eb;background:
       radial-gradient(1200px 600px at -10% -10%, rgba(124,58,237,.35), transparent 70%),
       radial-gradient(1200px 600px at 110% 10%, rgba(34,211,238,.30), transparent 70%),
       linear-gradient(180deg,#0b1220 0%, #0b1220 60%, #0f172a 100%);
     }
-    a{color:inherit}
-
     .wrap{max-width:980px;margin:48px auto;padding:0 20px}
     .hero{display:flex;align-items:center;gap:14px;margin-bottom:18px}
     .logo{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-2));box-shadow:0 10px 30px rgba(124,58,237,.35)}
     .title h1{margin:0;font-size:28px;letter-spacing:.2px}
     .title p{margin:4px 0 0;color:#cbd5e1}
 
-    .card{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));
-      border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-      border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
-
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);
+      border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.25)
+    }
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .full{grid-column:1/-1}
 
     label{display:block;font-weight:600;margin:6px 0 8px}
-    select,input[type=date],textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.25);background:rgba(2,6,23,.35);color:#e2e8f0;outline:none;transition:.2s}
+    select,input[type=date],textarea{
+      width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(148,163,184,.25);
+      background:rgba(2,6,23,.35);color:#e2e8f0;outline:none;transition:.2s
+    }
     select:focus,input[type=date]:focus,textarea:focus{border-color:var(--ring);box-shadow:0 0 0 4px rgba(167,139,250,.18)}
     textarea{min-height:110px;resize:vertical}
 
@@ -47,12 +47,10 @@
     .btn-ghost:hover{background:rgba(255,255,255,.10)}
 
     .note{color:#cbd5e1;font-size:13px;margin-top:8px}
-
     .alert{display:none;margin-top:8px;border-radius:12px;padding:10px 12px;font-weight:600}
     .ok{display:block;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.35);color:#bbf7d0}
     .err{display:block;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#fecaca}
 
-    /* Modal */
     .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,23,.6)}
     .modal.open{display:flex}
     .sheet{width:min(100%,960px)}
@@ -126,7 +124,7 @@
         </button>
         <div id="flash" class="alert"></div>
       </div>
-      <div class="note">Data disimpan ke Google Sheets (kolom pertama: <b>Timestamp</b>).</div>
+      <div class="note">Backend: Google Apps Script Web App (JSONP). Kolom pertama: <b>Timestamp</b>.</div>
     </div>
   </div>
 
@@ -149,16 +147,43 @@
   </div>
 
   <script>
-    // ==== KONFIGURASI: Ganti URL di bawah ini ====
-    const API_URL = 'https://script.google.com/macros/s/AKfycbw-5XENKGU_m9j01pIMJckbpeT_MJ2s8JafhP9B2OFyjx8hCep8O1vnTSZ3FAAeh2K0/exec'; // contoh: https://script.google.com/macros/s/AKfycbx.../exec
+    // ==== URL GAS ====
+    const API_URL = 'https://script.google.com/macros/s/AKfycbw-5XENKGU_m9j01pIMJckbpeT_MJ2s8JafhP9B2OFyjx8hCep8O1vnTSZ3FAAeh2K0/exec';
+
+    // JSONP util
+    function jsonp(url) {
+      return new Promise((resolve, reject) => {
+        const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+        const s = document.createElement('script');
+        const sep = url.includes('?') ? '&' : '?';
+        s.src = `${url}${sep}callback=${cb}`;
+        window[cb] = (data) => { resolve(data); delete window[cb]; s.remove(); };
+        s.onerror = () => { reject(new Error('JSONP error')); delete window[cb]; s.remove(); };
+        document.body.appendChild(s);
+      });
+    }
+    // API wrapper JSONP
+    function apiSave(payload){
+      const q = new URLSearchParams({
+        act:'save',
+        nama: payload.nama,
+        tanggal: payload.tanggal,
+        sakit: payload.sakit || '',
+        obat: payload.obat || '',
+        periksa: payload.periksa || ''
+      });
+      return jsonp(API_URL + '?' + q.toString());
+    }
+    function apiHistory(nama){
+      const q = new URLSearchParams({ act:'history', nama });
+      return jsonp(API_URL + '?' + q.toString());
+    }
 
     // Prefill tanggal = hari ini
-    (function initDateToday(){
+    (function(){
       const el=document.getElementById('tanggal');
-      const now=new Date();
-      const y=now.getFullYear();
-      const m=String(now.getMonth()+1).padStart(2,'0');
-      const d=String(now.getDate()).padStart(2,'0');
+      const n=new Date();
+      const y=n.getFullYear(), m=String(n.getMonth()+1).padStart(2,'0'), d=String(n.getDate()).padStart(2,'0');
       el.value=`${y}-${m}-${d}`;
     })();
 
@@ -181,15 +206,14 @@
       if(!payload.nama || !payload.tanggal){ flash('err','Nama dan Tanggal wajib diisi'); return; }
       this.disabled=true; this.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="#fff" stroke-width="2" opacity=".6"/><path d="M12 7v5l3 2" stroke="#fff" stroke-width="2"/></svg> Menyimpan…';
       try{
-        const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        const json=await res.json();
-        if(json && json.ok){ flash('ok','Data tersimpan'); }
-        else{ throw new Error(json && json.error ? json.error : 'Gagal menyimpan'); }
-      }catch(err){ flash('err',err.message||'Terjadi kesalahan'); }
+        const res = await apiSave(payload);
+        if(res && res.ok){ flash('ok','Data tersimpan'); }
+        else{ throw new Error(res && res.error ? res.error : 'Gagal menyimpan'); }
+      }catch(err){ flash('err', err.message || 'Terjadi kesalahan'); }
       finally{ this.disabled=false; this.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7l-8 10-4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Simpan'; }
     });
 
-    let _rawRows=[]; let _sortDesc=true; // true = terbaru dulu
+    let _rawRows=[]; let _sortDesc=true;
 
     qs('btnHistory').addEventListener('click', async function(){
       const nama=qs('nama').value;
@@ -197,9 +221,7 @@
       qs('modal').classList.add('open');
       qs('historyRoot').innerHTML='<div class="empty">Memuat data…</div>';
       try{
-        const url=`${API_URL}?act=history&nama=${encodeURIComponent(nama)}`;
-        const res=await fetch(url);
-        const json=await res.json();
+        const json = await apiHistory(nama);
         if(!json.ok) throw new Error(json.error||'Gagal memuat');
         _rawRows=json.data||[];
         renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
@@ -221,7 +243,10 @@
     function filterAndSort(rows, q, desc){
       if(!Array.isArray(rows)) return [];
       let data=[...rows];
-      if(q){ const s=q.toLowerCase(); data=data.filter(r=>[r.Tanggal,r.Sakit,r.Obat,r.Periksa,r.Timestamp].some(v=>String(v||'').toLowerCase().includes(s))); }
+      if(q){
+        const s=q.toLowerCase();
+        data=data.filter(r=>[r.Tanggal,r.Sakit,r.Obat,r.Periksa,r.Timestamp].some(v=>String(v||'').toLowerCase().includes(s)));
+      }
       data.sort((a,b)=> desc ? (a.Timestamp<b.Timestamp?1:-1) : (a.Timestamp>b.Timestamp?1:-1));
       return data;
     }
@@ -249,6 +274,3 @@
   </script>
 </body>
 </html>
-```
-
-
