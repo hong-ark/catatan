@@ -1,4 +1,50 @@
 <!DOCTYPE html>
+<select id="nama">
+<option value="ABIEL">ABIEL</option>
+<option value="PAPA">PAPA</option>
+<option value="MAMA">MAMA</option>
+</select>
+<button class="ghost" id="btnHistory">Lihat History</button>
+</div>
+</div>
+
+
+<div>
+<label for="tanggal">Tanggal</label>
+<input type="date" id="tanggal" />
+</div>
+</div>
+
+
+<div class="grid" style="margin-top:16px;">
+<div class="full">
+<label for="sakit">Sakit</label>
+<textarea id="sakit" placeholder="Keluhan/gejala..."></textarea>
+</div>
+<div class="full">
+<label for="obat">Obat</label>
+<textarea id="obat" placeholder="Nama obat, dosis, jadwal..."></textarea>
+</div>
+<div class="full">
+<label for="periksa">Periksa</label>
+<textarea id="periksa" placeholder="Rencana/hasil periksa..."></textarea>
+</div>
+</div>
+
+
+<div class="actions">
+<button class="primary" id="btnSave">Simpan</button>
+<div id="flash" style="display:none"></div>
+</div>
+
+
+<div class="muted" style="margin-top:8px;">Backend: Apps Script Web App (`/exec`). Timestamp di kolom pertama.</div>
+</div>
+
+
+<!-- Modal History -->
+<div class="modal" id="modal">
+<div class="card">
 <header>
 <h3 id="modalTitle" style="margin:0">History</h3>
 <div class="row">
@@ -11,7 +57,11 @@
 
 
 <script>
-// Prefill tanggal = hari ini
+// ==== KONFIGURASI: Ganti URL di bawah ini ====
+const API_URL = 'https://script.google.com/macros/s/AKfycbwmd-MOU3UUhXsWz9JIvAMkEJPD9nC0inCuu3eQ5WRqv4dYxBgr8FYI0wVVEse1w-WE/exec'; // contoh: https://script.google.com/macros/s/AKfycbx.../exec
+
+
+// Prefill tanggal = hari ini (zona waktu browser)
 (function initDateToday() {
 const el = document.getElementById('tanggal');
 const now = new Date();
@@ -32,50 +82,4 @@ setTimeout(() => (box.style.display = 'none'), 3000);
 };
 
 
-qs('btnSave').addEventListener('click', function () {
-const payload = {
-nama: qs('nama').value,
-tanggal: qs('tanggal').value,
-sakit: qs('sakit').value.trim(),
-obat: qs('obat').value.trim(),
-periksa: qs('periksa').value.trim()
-};
-
-
-if (!payload.nama || !payload.tanggal) {
-flash('err', 'Nama dan Tanggal wajib diisi');
-return;
-}
-
-
-this.disabled = true;
-this.textContent = 'Menyimpan...';
-
-
-google.script.run
-.withSuccessHandler(res => {
-qs('btnSave').disabled = false;
-qs('btnSave').textContent = 'Simpan';
-if (res && res.ok) {
-flash('ok', 'Data tersimpan');
-// Opsional: kosongkan isian
-// qs('sakit').value = ''; qs('obat').value = ''; qs('periksa').value = '';
-} else {
-flash('err', (res && res.message) || 'Gagal menyimpan');
-}
-})
-.withFailureHandler(err => {
-qs('btnSave').disabled = false;
-qs('btnSave').textContent = 'Simpan';
-flash('err', err && err.message ? err.message : 'Terjadi kesalahan');
-})
-.saveRecord(payload);
-});
-
-
-qs('btnHistory').addEventListener('click', function () {
-const nama = qs('nama').value;
-const title = `History: ${nama}`;
-qs('modalTitle').textContent = title;
-qs('modal').classList.add('open');
-qs('historyRoot').innerHTML = '<div class="empty">Memuat data...</div>';
+qs('btnSave').addEventListener('cli
