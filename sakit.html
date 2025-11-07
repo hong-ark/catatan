@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<header>
+<h3 id="modalTitle" style="margin:0">History</h3>
+<div class="row">
+<button class="ghost" id="btnClose">Tutup</button>
+</div>
+</header>
+<div id="historyRoot"></div>
+</div>
+</div>
+
+
+<script>
+// Prefill tanggal = hari ini
+(function initDateToday() {
+const el = document.getElementById('tanggal');
+const now = new Date();
+const y = now.getFullYear();
+const m = String(now.getMonth() + 1).padStart(2, '0');
+const d = String(now.getDate()).padStart(2, '0');
+el.value = `${y}-${m}-${d}`;
+})();
+
+
+const qs = id => document.getElementById(id);
+const flash = (type, msg) => {
+const box = qs('flash');
+box.className = type === 'err' ? 'err' : 'ok';
+box.textContent = msg;
+box.style.display = 'block';
+setTimeout(() => (box.style.display = 'none'), 3000);
+};
+
+
+qs('btnSave').addEventListener('click', function () {
+const payload = {
+nama: qs('nama').value,
+tanggal: qs('tanggal').value,
+sakit: qs('sakit').value.trim(),
+obat: qs('obat').value.trim(),
+periksa: qs('periksa').value.trim()
+};
+
+
+if (!payload.nama || !payload.tanggal) {
+flash('err', 'Nama dan Tanggal wajib diisi');
+return;
+}
+
+
+this.disabled = true;
+this.textContent = 'Menyimpan...';
+
+
+google.script.run
+.withSuccessHandler(res => {
+qs('btnSave').disabled = false;
+qs('btnSave').textContent = 'Simpan';
+if (res && res.ok) {
+flash('ok', 'Data tersimpan');
+// Opsional: kosongkan isian
+// qs('sakit').value = ''; qs('obat').value = ''; qs('periksa').value = '';
+} else {
+flash('err', (res && res.message) || 'Gagal menyimpan');
+}
+})
+.withFailureHandler(err => {
+qs('btnSave').disabled = false;
+qs('btnSave').textContent = 'Simpan';
+flash('err', err && err.message ? err.message : 'Terjadi kesalahan');
+})
+.saveRecord(payload);
+});
+
+
+qs('btnHistory').addEventListener('click', function () {
+const nama = qs('nama').value;
+const title = `History: ${nama}`;
+qs('modalTitle').textContent = title;
+qs('modal').classList.add('open');
+qs('historyRoot').innerHTML = '<div class="empty">Memuat data...</div>';
