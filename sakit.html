@@ -8,18 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg:#f5f7fb; --card:#ffffff; --text:#111827;
-      --muted:#6b7280; --border:#e5e7eb;
-      --primary:#4f46e5; --primary-2:#22c55e; --ring:#a5b4fc;
-    }
+    :root{ --bg:#f5f7fb; --card:#ffffff; --text:#111827; --muted:#6b7280; --border:#e5e7eb; --primary:#4f46e5; --primary-2:#22c55e; --ring:#a5b4fc; }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:var(--text);background:var(--bg);}
     .wrap{max-width:980px;margin:48px auto;padding:0 20px}
     .hero{display:flex;align-items:center;gap:14px;margin-bottom:18px}
     .logo{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,var(--primary),var(--primary-2));box-shadow:0 10px 24px rgba(79,70,229,.25)}
-    .title h1{margin:0;font-size:28px;letter-spacing:.2px}
+    .title h1{margin:0;font-size:28px}
     .title p{margin:4px 0 0;color:var(--muted)}
     .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 10px 20px rgba(0,0,0,.06)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -74,7 +70,7 @@
       <!-- Iframe untuk respon POST -->
       <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
 
-      <!-- Satu form untuk data + file -->
+      <!-- Satu form: data + file -->
       <form id="allForm" action="" method="post" target="upload_iframe" enctype="multipart/form-data">
         <input type="hidden" name="act" value="uploadAndSave">
 
@@ -147,7 +143,6 @@
         <strong id="modalTitle">History</strong>
         <div class="tools">
           <input type="search" id="q" placeholder="Cari di tabel..." />
-          <!-- Tambahan: filter Tahun -->
           <label for="year" class="muted" style="margin-left:6px">Tahun</label>
           <select id="year"></select>
           <button class="btn-ghost" id="btnSort">🔽 Urut: Terbaru</button>
@@ -173,13 +168,11 @@
   </div>
 
   <script>
-    // ==== URL GAS (pastikan pakai /exec terbaru) ====
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzfDhY0Hz627r5E9CMdSAnfMx_bleiYipDa4iBdzt-Z6zmufhV25ry1QMab76W-7gw/exec';
-
-    // set action form ke GAS
+    // ==== URL GAS (/exec terbaru) ====
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyNeNFZIVsqPlQAadTLtH7FUtu3rzk501N9uw7Wn8BU8NhEI6zhUFftEMTh5T0B4cWK/exec';
     document.getElementById('allForm').action = API_URL;
 
-    // ==== JSONP with cache-buster + timeout + debug link ====
+    // ==== JSONP dengan cache-buster + timeout + debug link ====
     function jsonp(url, {timeout=12000} = {}) {
       return new Promise((resolve, reject) => {
         const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
@@ -190,7 +183,7 @@
 
         const timer = setTimeout(() => {
           cleanup();
-          reject(new Error('JSONP timeout (akses web app tidak publik / koneksi lambat?)'));
+          reject(new Error('JSONP timeout (cek akses Web App & koneksi)'));
         }, timeout);
 
         function cleanup(){ clearTimeout(timer); delete window[cb]; s.remove(); }
@@ -198,14 +191,12 @@
         s.onerror = () => { cleanup(); reject(new Error('JSONP error (URL salah / diblokir)')); };
         document.body.appendChild(s);
 
-        // simpan URL terakhir untuk debug
         window.__lastJsonpURL = src;
       });
     }
 
-    // ==== API GET ====
-    function apiHistory(nama){
-      const q = new URLSearchParams({ act:'history', nama });
+    function apiHistory(nama, year='all'){
+      const q = new URLSearchParams({ act:'history', nama, year });
       return jsonp(API_URL + '?' + q.toString());
     }
     function apiFiles(nama){
@@ -221,6 +212,15 @@
       el.value=`${y}-${m}-${d}`;
     })();
 
+    // Isi pilihan tahun: 10 tahun terakhir
+    (function initYearOptions(){
+      const yearSel = document.getElementById('year');
+      const now = new Date().getFullYear();
+      let html = `<option value="all">Semua</option>`;
+      for (let y = now; y >= now-10; y--) html += `<option value="${y}">${y}</option>`;
+      yearSel.innerHTML = html;
+    })();
+
     const qs=id=>document.getElementById(id);
     const flash=(type,msg,boxId='flash')=>{
       const box=qs(boxId);
@@ -229,46 +229,35 @@
       setTimeout(()=>{ box.style.display='none'; },3000);
     };
 
-    // ===== Submit: data + file dalam 1 tombol =====
-    const allForm = qs('allForm');
-    const btnSave = qs('btnSave');
-    allForm.addEventListener('submit', function(event){
-      const nama = qs('nama').value;
-      const tanggal = qs('tanggal').value;
-      if(!nama || !tanggal){
-        event.preventDefault();
-        flash('err','Nama dan Tanggal wajib diisi');
-        return;
+    // Submit 1 tombol: data + file
+    const allForm = qs('allForm'), btnSave=qs('btnSave');
+    allForm.addEventListener('submit', function(ev){
+      if(!qs('nama').value || !qs('tanggal').value){
+        ev.preventDefault(); flash('err','Nama dan Tanggal wajib diisi'); return;
       }
-      btnSave.disabled = true;
-      btnSave.textContent = '⏳ Memproses...';
+      btnSave.disabled=true; btnSave.textContent='⏳ Memproses...';
       flash('ok','Mengirim data...', 'flash');
     });
 
-    // Terima hasil doPost dari GAS
+    // Terima balasan dari GAS
     window.addEventListener('message', (ev)=>{
       if(!ev.data || ev.data.type !== 'uploadResult') return;
-      btnSave.disabled = false;
-      btnSave.textContent = '💾 Simpan';
+      btnSave.disabled=false; btnSave.textContent='💾 Simpan';
       if(ev.data.ok){
         const info = ev.data.uploaded ? ` (file: ${ev.data.uploaded.name})` : '';
-        flash('ok', 'Tersimpan' + info);
-        qs('file').value = '';
-        qs('ket').value  = '';
+        flash('ok','Tersimpan'+info);
+        qs('file').value=''; qs('ket').value='';
       }else{
         flash('err', ev.data.error || 'Gagal menyimpan');
       }
     });
 
-    // ======== HISTORY (dengan filter Tahun) ========
+    // ===== HISTORY (filter tahun) =====
     let _rawRows=[]; let _sortDesc=true;
 
     function fmtDateView(v){
       const d=new Date(v);
-      if(!isNaN(d)){
-        const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
-        return `${y}-${m}-${dd}`;
-      }
+      if(!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       return v||'';
     }
     function fmtTsView(v){
@@ -280,18 +269,9 @@
       }
       return v||'';
     }
-
-    function filterAndSort(rows, q, desc, year='all'){
+    function filterAndSort(rows, q, desc){
       if(!Array.isArray(rows)) return [];
       let data=[...rows];
-
-      if(year && year!=='all'){
-        data = data.filter(r=>{
-          const t1 = String(r.Tanggal||'');
-          const t2 = String(r.Timestamp||'');
-          return t1.startsWith(year) || t2.startsWith(year);
-        });
-      }
       if(q){
         const s=q.toLowerCase();
         data=data.filter(r=>[r.Tanggal,r.Sakit,r.Obat,r.Periksa,r.Timestamp].some(v=>String(v||'').toLowerCase().includes(s)));
@@ -299,12 +279,8 @@
       data.sort((a,b)=> desc ? (a.Timestamp<b.Timestamp?1:-1) : (a.Timestamp>b.Timestamp?1:-1));
       return data;
     }
-
     function renderHistoryTable(rows){
-      if(!rows||rows.length===0){
-        qs('historyRoot').innerHTML='<div class="empty">Belum ada data untuk kriteria ini.</div>';
-        return;
-      }
+      if(!rows||rows.length===0){ qs('historyRoot').innerHTML='<div class="empty">Belum ada data.</div>'; return; }
       const table=document.createElement('table'); table.className='table';
       const thead=document.createElement('thead'); const trh=document.createElement('tr');
       ['Tanggal','Sakit','Obat','Periksa','Timestamp'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
@@ -321,50 +297,29 @@
       qs('historyRoot').innerHTML=''; qs('historyRoot').appendChild(table);
     }
 
-    function populateYearOptions(rows){
-      const yearSel = qs('year');
-      const years = new Set();
-      rows.forEach(r=>{
-        const fromTanggal = String(r.Tanggal||'').slice(0,4);
-        const fromTs      = String(r.Timestamp||'').slice(0,4);
-        if(/^\d{4}$/.test(fromTanggal)) years.add(fromTanggal);
-        if(/^\d{4}$/.test(fromTs)) years.add(fromTs);
-      });
-      if(years.size===0) years.add(String(new Date().getFullYear()));
-      const list = Array.from(years).sort((a,b)=>b.localeCompare(a));
-      yearSel.innerHTML = `<option value="all">Semua</option>` + list.map(y=>`<option value="${y}">${y}</option>`).join('');
-    }
-
     qs('btnHistory').addEventListener('click', async function(){
       const nama=qs('nama').value;
+      const year=qs('year').value || 'all';
       qs('modalTitle').textContent=`History: ${nama}`;
       qs('modal').classList.add('open');
       qs('historyRoot').innerHTML='<div class="empty">Memuat data…</div>';
       try{
-        const json = await apiHistory(nama);
+        const json = await apiHistory(nama, year);
         if(!json.ok) throw new Error(json.error||'Gagal memuat');
         _rawRows=json.data||[];
-        populateYearOptions(_rawRows);
-        const yearVal = qs('year').value || 'all';
-        renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, yearVal));
+        renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
       }catch(err){
         const dbg = window.__lastJsonpURL ? `<div style="margin-top:8px"><a href="${window.__lastJsonpURL}" target="_blank">Buka URL API (debug)</a></div>` : '';
         qs('historyRoot').innerHTML=`<div class="empty">Error: ${err.message}${dbg}</div>`;
       }
     });
-
-    qs('btnClose').addEventListener('click',()=>{ qs('modal').classList.remove('open'); });
+    qs('btnClose').addEventListener('click',()=> qs('modal').classList.remove('open'));
     qs('btnSort').addEventListener('click',()=>{
       _sortDesc=!_sortDesc;
       qs('btnSort').textContent=_sortDesc?'🔽 Urut: Terbaru':'🔼 Urut: Terlama';
-      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, qs('year').value||'all'));
+      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
     });
-    qs('q').addEventListener('input',()=>{
-      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, qs('year').value||'all'));
-    });
-    qs('year').addEventListener('change', ()=>{
-      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, qs('year').value||'all'));
-    });
+    qs('q').addEventListener('input',()=> renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc)));
 
     // ===== FILES =====
     const modalFiles = qs('modalFiles');
@@ -386,30 +341,26 @@
     qs('qFiles').addEventListener('input', ()=>{
       const rows = Array.from(document.querySelectorAll('#filesRoot tbody tr'));
       const s = qs('qFiles').value.toLowerCase();
-      rows.forEach(tr=>{
-        const text = tr.innerText.toLowerCase();
-        tr.style.display = text.includes(s) ? '' : 'none';
-      });
+      rows.forEach(tr=>{ tr.style.display = tr.innerText.toLowerCase().includes(s) ? '' : 'none'; });
     });
 
     function renderFilesTable(rows){
       if(!rows || rows.length === 0){
-        qs('filesRoot').innerHTML = '<div class="empty">Belum ada file untuk nama ini.</div>';
+        qs('filesRoot').innerHTML = '<div class="empty">Belum ada file.</div>';
         return;
       }
       const table=document.createElement('table'); table.className='table';
-      const thead=document.createElement('thead');
-      const trh=document.createElement('tr');
+      const thead=document.createElement('thead'); const trh=document.createElement('tr');
       ['File','Keterangan','Timestamp'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
       thead.appendChild(trh); table.appendChild(thead);
       const tbody=document.createElement('tbody');
       rows.forEach(r=>{
         const tr=document.createElement('tr');
-        const td1=document.createElement('td');
-        const a=document.createElement('a'); a.href=r.FileUrl; a.target='_blank'; a.textContent=r.FileName||'File';
+        const td1=document.createElement('td'); const a=document.createElement('a');
+        a.href=r.FileUrl; a.target='_blank'; a.textContent=r.FileName||'File';
         td1.appendChild(a); tr.appendChild(td1);
         const td2=document.createElement('td'); td2.textContent = r.Keterangan || ''; tr.appendChild(td2);
-        const td3=document.createElement('td'); td3.textContent = fmtTsView(r.Timestamp); tr.appendChild(td3);
+        const td3=document.createElement('td'); td3.textContent = r.Timestamp; tr.appendChild(td3);
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
