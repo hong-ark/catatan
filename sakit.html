@@ -45,9 +45,9 @@
     .modal.open{display:flex}
     .sheet{width:min(100%,960px)}
     .card2{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 20px rgba(0,0,0,.15)}
-    .card2 header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
-    .tools{display:flex;gap:8px;flex-wrap:wrap}
-    .tools input{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text)}
+    .card2 header{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .tools input,.tools select{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text)}
     .table{width:100%;border-collapse:collapse}
     .table th,.table td{border-bottom:1px solid var(--border);padding:12px 10px;text-align:left;vertical-align:top}
     .table th{color:#374151;font-size:13px;background:#f9fafb}
@@ -71,10 +71,10 @@
     </div>
 
     <div class="card">
-      <!-- ========= IFRAME UNTUK RESPON POST (tanpa CORS) ========= -->
+      <!-- Iframe untuk respon POST -->
       <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
 
-      <!-- ========= SATU FORM UNTUK DATA + FILE ========= -->
+      <!-- Satu form untuk data + file -->
       <form id="allForm" action="" method="post" target="upload_iframe" enctype="multipart/form-data">
         <input type="hidden" name="act" value="uploadAndSave">
 
@@ -111,7 +111,7 @@
             <textarea id="periksa" name="periksa" placeholder="Rencana/hasil periksa..."></textarea>
           </div>
 
-          <!-- ===== Upload Section (opsional) ===== -->
+          <!-- Upload (opsional) -->
           <div class="full">
             <h3 style="margin:12px 0 6px">Lampirkan File (opsional)</h3>
             <p class="muted" style="margin-top:0">Contoh: hasil lab, foto resep, rujukan, dsb. File akan tersimpan ke Google Drive.</p>
@@ -128,7 +128,6 @@
             </div>
             <div id="flashUpload" class="alert"></div>
           </div>
-          <!-- ===== End Upload Section ===== -->
         </div>
 
         <div class="actions">
@@ -148,6 +147,9 @@
         <strong id="modalTitle">History</strong>
         <div class="tools">
           <input type="search" id="q" placeholder="Cari di tabel..." />
+          <!-- Tambahan: filter Tahun -->
+          <label for="year" class="muted" style="margin-left:6px">Tahun</label>
+          <select id="year"></select>
           <button class="btn-ghost" id="btnSort">🔽 Urut: Terbaru</button>
           <button class="btn-ghost" id="btnClose">Tutup</button>
         </div>
@@ -171,24 +173,37 @@
   </div>
 
   <script>
-    // ==== URL GAS ====
+    // ==== URL GAS (pastikan pakai /exec terbaru) ====
     const API_URL = 'https://script.google.com/macros/s/AKfycbzfDhY0Hz627r5E9CMdSAnfMx_bleiYipDa4iBdzt-Z6zmufhV25ry1QMab76W-7gw/exec';
 
-    // Set form action ke GAS
+    // set action form ke GAS
     document.getElementById('allForm').action = API_URL;
 
-    // ==== JSONP util untuk GET (history & files) ====
-    function jsonp(url) {
+    // ==== JSONP with cache-buster + timeout + debug link ====
+    function jsonp(url, {timeout=12000} = {}) {
       return new Promise((resolve, reject) => {
         const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
-        const s = document.createElement('script');
         const sep = url.includes('?') ? '&' : '?';
-        s.src = `${url}${sep}callback=${cb}`;
-        window[cb] = (data) => { resolve(data); delete window[cb]; s.remove(); };
-        s.onerror = () => { reject(new Error('JSONP error')); delete window[cb]; s.remove(); };
+        const src = `${url}${sep}callback=${cb}&_ts=${Date.now()}`;
+        const s = document.createElement('script');
+        s.src = src; s.async = true;
+
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error('JSONP timeout (akses web app tidak publik / koneksi lambat?)'));
+        }, timeout);
+
+        function cleanup(){ clearTimeout(timer); delete window[cb]; s.remove(); }
+        window[cb] = (data) => { cleanup(); resolve(data); };
+        s.onerror = () => { cleanup(); reject(new Error('JSONP error (URL salah / diblokir)')); };
         document.body.appendChild(s);
+
+        // simpan URL terakhir untuk debug
+        window.__lastJsonpURL = src;
       });
     }
+
+    // ==== API GET ====
     function apiHistory(nama){
       const q = new URLSearchParams({ act:'history', nama });
       return jsonp(API_URL + '?' + q.toString());
@@ -198,7 +213,7 @@
       return jsonp(API_URL + '?' + q.toString());
     }
 
-    // Prefill tanggal sekarang
+    // Prefill tanggal hari ini
     (function(){
       const el=document.getElementById('tanggal');
       const n=new Date();
@@ -214,13 +229,10 @@
       setTimeout(()=>{ box.style.display='none'; },3000);
     };
 
-    // ===== SUBMIT SATU TOMBOL: kirim data + file =====
+    // ===== Submit: data + file dalam 1 tombol =====
     const allForm = qs('allForm');
     const btnSave = qs('btnSave');
-
-    allForm.addEventListener('submit', function(){
-      // pastikan act=uploadAndSave
-      // (sudah di-hidden input). Optional validasi:
+    allForm.addEventListener('submit', function(event){
       const nama = qs('nama').value;
       const tanggal = qs('tanggal').value;
       if(!nama || !tanggal){
@@ -233,7 +245,7 @@
       flash('ok','Mengirim data...', 'flash');
     });
 
-    // Terima hasil dari GAS (postMessage dari doPost)
+    // Terima hasil doPost dari GAS
     window.addEventListener('message', (ev)=>{
       if(!ev.data || ev.data.type !== 'uploadResult') return;
       btnSave.disabled = false;
@@ -241,40 +253,15 @@
       if(ev.data.ok){
         const info = ev.data.uploaded ? ` (file: ${ev.data.uploaded.name})` : '';
         flash('ok', 'Tersimpan' + info);
-        // reset file & keterangan (opsional reset juga field lain)
         qs('file').value = '';
-        qs('ket').value = '';
+        qs('ket').value  = '';
       }else{
         flash('err', ev.data.error || 'Gagal menyimpan');
       }
     });
 
-    // ===== History Catatan =====
+    // ======== HISTORY (dengan filter Tahun) ========
     let _rawRows=[]; let _sortDesc=true;
-    qs('btnHistory').addEventListener('click', async function(){
-      const nama=qs('nama').value;
-      qs('modalTitle').textContent=`History: ${nama}`;
-      qs('modal').classList.add('open');
-      qs('historyRoot').innerHTML='<div class="empty">Memuat data…</div>';
-      try{
-        const json = await apiHistory(nama);
-        if(!json.ok) throw new Error(json.error||'Gagal memuat');
-        _rawRows=json.data||[];
-        renderHistoryTable(filterAndSort(_rawRows, '', _sortDesc));
-        qs('q').value='';
-      }catch(err){
-        qs('historyRoot').innerHTML=`<div class="empty">Error: ${err.message}</div>`;
-      }
-    });
-    qs('btnClose').addEventListener('click',()=>{ qs('modal').classList.remove('open'); });
-    qs('btnSort').addEventListener('click',()=>{
-      _sortDesc=!_sortDesc;
-      qs('btnSort').textContent=_sortDesc?'🔽 Urut: Terbaru':'🔼 Urut: Terlama';
-      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
-    });
-    qs('q').addEventListener('input',()=>{
-      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc));
-    });
 
     function fmtDateView(v){
       const d=new Date(v);
@@ -293,9 +280,18 @@
       }
       return v||'';
     }
-    function filterAndSort(rows, q, desc){
+
+    function filterAndSort(rows, q, desc, year='all'){
       if(!Array.isArray(rows)) return [];
       let data=[...rows];
+
+      if(year && year!=='all'){
+        data = data.filter(r=>{
+          const t1 = String(r.Tanggal||'');
+          const t2 = String(r.Timestamp||'');
+          return t1.startsWith(year) || t2.startsWith(year);
+        });
+      }
       if(q){
         const s=q.toLowerCase();
         data=data.filter(r=>[r.Tanggal,r.Sakit,r.Obat,r.Periksa,r.Timestamp].some(v=>String(v||'').toLowerCase().includes(s)));
@@ -303,6 +299,7 @@
       data.sort((a,b)=> desc ? (a.Timestamp<b.Timestamp?1:-1) : (a.Timestamp>b.Timestamp?1:-1));
       return data;
     }
+
     function renderHistoryTable(rows){
       if(!rows||rows.length===0){
         qs('historyRoot').innerHTML='<div class="empty">Belum ada data untuk kriteria ini.</div>';
@@ -324,7 +321,52 @@
       qs('historyRoot').innerHTML=''; qs('historyRoot').appendChild(table);
     }
 
-    // ===== Riwayat File =====
+    function populateYearOptions(rows){
+      const yearSel = qs('year');
+      const years = new Set();
+      rows.forEach(r=>{
+        const fromTanggal = String(r.Tanggal||'').slice(0,4);
+        const fromTs      = String(r.Timestamp||'').slice(0,4);
+        if(/^\d{4}$/.test(fromTanggal)) years.add(fromTanggal);
+        if(/^\d{4}$/.test(fromTs)) years.add(fromTs);
+      });
+      if(years.size===0) years.add(String(new Date().getFullYear()));
+      const list = Array.from(years).sort((a,b)=>b.localeCompare(a));
+      yearSel.innerHTML = `<option value="all">Semua</option>` + list.map(y=>`<option value="${y}">${y}</option>`).join('');
+    }
+
+    qs('btnHistory').addEventListener('click', async function(){
+      const nama=qs('nama').value;
+      qs('modalTitle').textContent=`History: ${nama}`;
+      qs('modal').classList.add('open');
+      qs('historyRoot').innerHTML='<div class="empty">Memuat data…</div>';
+      try{
+        const json = await apiHistory(nama);
+        if(!json.ok) throw new Error(json.error||'Gagal memuat');
+        _rawRows=json.data||[];
+        populateYearOptions(_rawRows);
+        const yearVal = qs('year').value || 'all';
+        renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, yearVal));
+      }catch(err){
+        const dbg = window.__lastJsonpURL ? `<div style="margin-top:8px"><a href="${window.__lastJsonpURL}" target="_blank">Buka URL API (debug)</a></div>` : '';
+        qs('historyRoot').innerHTML=`<div class="empty">Error: ${err.message}${dbg}</div>`;
+      }
+    });
+
+    qs('btnClose').addEventListener('click',()=>{ qs('modal').classList.remove('open'); });
+    qs('btnSort').addEventListener('click',()=>{
+      _sortDesc=!_sortDesc;
+      qs('btnSort').textContent=_sortDesc?'🔽 Urut: Terbaru':'🔼 Urut: Terlama';
+      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, qs('year').value||'all'));
+    });
+    qs('q').addEventListener('input',()=>{
+      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, qs('year').value||'all'));
+    });
+    qs('year').addEventListener('change', ()=>{
+      renderHistoryTable(filterAndSort(_rawRows, qs('q').value, _sortDesc, qs('year').value||'all'));
+    });
+
+    // ===== FILES =====
     const modalFiles = qs('modalFiles');
     qs('btnFileHistory').addEventListener('click', async ()=>{
       const nama = qs('nama').value;
@@ -336,7 +378,8 @@
         if(!json.ok) throw new Error(json.error || 'Gagal memuat');
         renderFilesTable(json.data || []);
       } catch (err) {
-        qs('filesRoot').innerHTML = `<div class="empty">Error: ${err.message}</div>`;
+        const dbg = window.__lastJsonpURL ? `<div style="margin-top:8px"><a href="${window.__lastJsonpURL}" target="_blank">Buka URL API (debug)</a></div>` : '';
+        qs('filesRoot').innerHTML = `<div class="empty">Error: ${err.message}${dbg}</div>`;
       }
     });
     qs('btnCloseFiles').addEventListener('click', ()=> modalFiles.classList.remove('open'));
@@ -375,4 +418,3 @@
   </script>
 </body>
 </html>
-
