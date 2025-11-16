@@ -1,44 +1,40 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Catatan Kesehatan Keluarga</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{ --bg:#f5f7fb; --card:#fff; --text:#111827; --muted:#6b7280; --border:#e5e7eb; --primary:#4f46e5; --ring:#a5b4fc; }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:var(--text);background:var(--bg);}
-  .wrap{max-width:980px;margin:28px auto;padding:0 16px}
-  .hero{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-  .logo{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:linear-gradient(135deg,var(--primary),#22c55e);color:#fff}
-  .card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:0 6px 14px rgba(0,0,0,.06)}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .full{grid-column:1/-1}
-  label{display:block;font-weight:600;margin:6px 0 8px}
-  select,input[type=date],textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff}
-  textarea{min-height:100px;resize:vertical}
-  .actions{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
-  .btn-primary{background:linear-gradient(135deg,var(--primary),#6366f1);color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:700}
-  .btn-ghost{background:#f3f4f6;color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:10px}
-  .note{color:var(--muted);font-size:13px;margin-top:8px}
-  .alert{display:none;margin-top:8px;border-radius:10px;padding:8px 10px;font-weight:600}
-  .ok{display:block;background:#dcfce7;border:1px solid #bbf7d0;color:#065f46}
-  .err{display:block;background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d}
-  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.28)}
-  .modal.open{display:flex}
-  .sheet{width:min(100%,920px);background:var(--card);border-radius:12px;overflow:auto;max-height:80vh;padding:12px;border:1px solid var(--border)}
-  .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .table{width:100%;border-collapse:collapse}
-  .table th,.table td{border-bottom:1px solid var(--border);padding:8px 8px;text-align:left}
-  @media (max-width:720px){ .grid{grid-template-columns:1fr} .wrap{margin:18px auto} }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catatan Kesehatan Keluarga</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#f5f7fb; --card:#fff; --text:#111827; --muted:#6b7280; --border:#e5e7eb; --primary:#4f46e5; --ring:#a5b4fc; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;color:var(--text);background:var(--bg)}
+    .wrap{max-width:980px;margin:28px auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 20px rgba(0,0,0,.05)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .full{grid-column:1/-1}
+    label{display:block;font-weight:600;margin:6px 0}
+    input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff}
+    textarea{min-height:100px;resize:vertical}
+    .actions{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+    .btn-primary{background:linear-gradient(135deg,var(--primary),#6366f1);color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:700}
+    .btn-ghost{background:#f3f4f6;color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:10px}
+    .note{color:var(--muted);font-size:13px;margin-top:8px}
+    .alert{display:none;margin-top:8px;padding:8px;border-radius:10px;font-weight:600}
+    .ok{display:block;background:#dcfce7;border:1px solid #bbf7d0;color:#065f46}
+    .err{display:block;background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.28)}
+    .modal.open{display:flex}
+    .sheet{width:min(100%,920px);max-height:80vh;overflow:auto;background:var(--card);border-radius:10px;padding:12px;border:1px solid var(--border)}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--border);padding:8px;text-align:left}
+    @media (max-width:720px){ .grid{grid-template-columns:1fr} .wrap{padding:12px} }
+  </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="hero">
-      <div class="logo" aria-hidden="true">🏥</div>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+      <div style="width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#22c55e);display:grid;place-items:center;color:white">🏥</div>
       <div>
         <h2 style="margin:0">Catatan Kesehatan Keluarga</h2>
         <div style="color:var(--muted);font-size:13px">Form catatan kesehatan + riwayat</div>
@@ -46,58 +42,69 @@
     </div>
 
     <div class="card">
-      <div class="grid">
-        <div class="full">
-          <label for="nama">Nama</label>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <select id="nama" name="nama">
-              <option value="ABIEL">ABIEL</option>
-              <option value="PAPA">PAPA</option>
-              <option value="MAMA">MAMA</option>
-            </select>
-            <button class="btn-ghost" id="btnHistory" type="button">📜 Lihat History</button>
+      <!-- hidden iframe untuk menerima response doPost -->
+      <iframe id="upload_iframe" name="upload_iframe" style="display:none;"></iframe>
+
+      <!-- FORM: kirim ke GAS via POST (iframe target) -->
+      <form id="mainForm" action="" method="post" target="upload_iframe" enctype="application/x-www-form-urlencoded">
+        <!-- act=save supaya doPost di GAS menangani -->
+        <input type="hidden" name="act" value="save">
+
+        <div class="grid">
+          <div class="full">
+            <label for="nama">Nama</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="nama" name="nama">
+                <option value="ABIEL">ABIEL</option>
+                <option value="PAPA">PAPA</option>
+                <option value="MAMA">MAMA</option>
+              </select>
+              <button type="button" id="btnHistory" class="btn-ghost">📜 Lihat History</button>
+            </div>
+          </div>
+
+          <div>
+            <label for="tanggal">Tanggal</label>
+            <input type="date" id="tanggal" name="tanggal" />
           </div>
         </div>
-        <div>
-          <label for="tanggal">Tanggal</label>
-          <input type="date" id="tanggal" name="tanggal" />
-        </div>
-      </div>
 
-      <div class="grid" style="margin-top:10px">
-        <div class="full">
-          <label for="sakit">Sakit</label>
-          <textarea id="sakit" name="sakit" placeholder="Keluhan / gejala..."></textarea>
+        <div class="grid" style="margin-top:12px">
+          <div class="full">
+            <label for="sakit">Sakit</label>
+            <textarea id="sakit" name="sakit" placeholder="Keluhan / gejala..."></textarea>
+          </div>
+          <div class="full">
+            <label for="obat">Obat</label>
+            <textarea id="obat" name="obat" placeholder="Nama obat, dosis, jadwal..."></textarea>
+          </div>
+          <div class="full">
+            <label for="periksa">Periksa</label>
+            <textarea id="periksa" name="periksa" placeholder="Rencana / hasil periksa..."></textarea>
+          </div>
         </div>
-        <div class="full">
-          <label for="obat">Obat</label>
-          <textarea id="obat" name="obat" placeholder="Nama obat, dosis, jadwal..."></textarea>
-        </div>
-        <div class="full">
-          <label for="periksa">Periksa</label>
-          <textarea id="periksa" name="periksa" placeholder="Rencana / hasil periksa..."></textarea>
-        </div>
-      </div>
 
-      <div class="actions">
-        <button id="btnSave" class="btn-primary" type="button">💾 Simpan</button>
-        <div id="flash" class="alert"></div>
-      </div>
-      <div class="note">Data disimpan ke Google Sheets (Timestamp di kolom pertama).</div>
+        <div class="actions">
+          <button id="btnSave" class="btn-primary" type="submit">💾 Simpan</button>
+          <div id="flash" class="alert"></div>
+        </div>
+      </form>
+
+      <div class="note">Data akan disimpan ke Google Sheets. Jika menyimpan di HP gagal, akan tampil link debug.</div>
     </div>
   </div>
 
   <!-- Modal History -->
-  <div class="modal" id="modal" aria-hidden="true">
+  <div class="modal" id="modal">
     <div class="sheet">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
         <strong id="modalTitle">History</strong>
-        <div class="tools">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input id="q" type="search" placeholder="Cari..." style="padding:8px;border-radius:8px;border:1px solid var(--border)">
           <label style="color:var(--muted)">Tahun</label>
           <select id="year" style="padding:8px;border-radius:8px;border:1px solid var(--border)"></select>
-          <button class="btn-ghost" id="btnSort" type="button">🔽 Urut: Terbaru</button>
-          <button class="btn-ghost" id="btnClose" type="button">Tutup</button>
+          <button id="btnSort" class="btn-ghost" type="button">🔽 Urut: Terbaru</button>
+          <button id="btnClose" class="btn-ghost" type="button">Tutup</button>
         </div>
       </div>
       <div id="historyRoot" style="min-height:120px"></div>
@@ -105,223 +112,237 @@
   </div>
 
 <script>
-/* =========== CONFIG: ganti dengan URL /exec Web App kamu =========== */
-const API_URL = 'https://script.google.com/macros/s/AKfycby07tXZok1NGMKvQrm9ke_xaUX2So5w12ZRxJxeFjXpN7q_35zEUCaUs4KzBJzN4ObA/exec';
+/* =================== CONFIG - GANTI DENGAN URL /exec GAS ANDA ===================
+   Contoh: 'https://script.google.com/macros/s/AKfycb.../exec'
+   ========================================================================= */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxTrvno2zTvPSzvRhJl8KsoKULSqvMBduRYRRJc6VpEXdt0H410ywj_VqjisDKaHXuN/exec';
+/* ========================================================================== */
 
-/* =========== JSONP helper: cache-buster + timeout + retry =========== */
-function jsonp(url, {timeout=10000, retries=1} = {}) {
+/* ===== JSONP helper (robust: cache-buster + retries + proxy fallback) ===== */
+function jsonp(url, { timeout = 12000, retries = 2, useProxyFallback = true } = {}) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
     let lastErr = null;
+    const originalUrl = url;
 
-    function attempt() {
+    function attemptOnce() {
       attempts++;
-      const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
-      const sep = url.includes('?') ? '&' : '?';
-      const src = `${url}${sep}callback=${cb}&_ts=${Date.now()}`;
+      const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+      const sep = originalUrl.includes('?') ? '&' : '?';
+      const src = `${originalUrl}${sep}callback=${cb}&_ts=${Date.now()}`;
       window.__lastJsonpURL = src;
+      let settled = false;
+
       const s = document.createElement('script');
-      s.src = src;
-      s.async = true;
+      s.src = src; s.async = true;
 
       const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
         cleanup();
         lastErr = new Error('JSONP timeout');
-        if (attempts <= retries) attempt(); else reject(lastErr);
+        if (attempts <= retries) attemptOnce(); else handleFallback();
       }, timeout);
 
-      function cleanup(){
+      function cleanup() {
         clearTimeout(timer);
-        delete window[cb];
-        s.remove();
+        try { delete window[cb]; } catch (e) {}
+        if (s && s.parentNode) s.parentNode.removeChild(s);
       }
 
-      window[cb] = (data) => { cleanup(); resolve(data); };
+      window[cb] = (data) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(data);
+      };
+
       s.onerror = () => {
+        if (settled) return;
+        settled = true;
         cleanup();
         lastErr = new Error('JSONP load error');
-        if (attempts <= retries) attempt(); else reject(lastErr);
+        if (attempts <= retries) attemptOnce(); else handleFallback();
       };
 
       document.body.appendChild(s);
     }
 
-    attempt();
+    async function handleFallback() {
+      if (!useProxyFallback) {
+        return reject(lastErr || new Error('JSONP failed'));
+      }
+      // fallback via AllOrigins (raw)
+      try {
+        const proxy = 'https://api.allorigins.win/raw?url=';
+        const fetchUrl = proxy + encodeURIComponent(window.__lastJsonpURL || originalUrl);
+        const resp = await fetch(fetchUrl, { cache: 'no-store' });
+        if (!resp.ok) throw new Error('Proxy fetch failed: ' + resp.status);
+        const text = await resp.text();
+        // extract callback name from url
+        const m = (window.__lastJsonpURL || originalUrl).match(/[?&]callback=([^&]+)/);
+        const cbName = m ? decodeURIComponent(m[1]) : null;
+        if (!cbName) throw new Error('Callback name missing for proxy fallback');
+        // create callback and eval returned script
+        window[cbName] = function(data) {
+          try { delete window[cbName]; } catch (e) {}
+          resolve(data);
+        };
+        try {
+          // eval in global scope
+          (0, eval)(text);
+        } catch (e) {
+          try { delete window[cbName]; } catch (err) {}
+          throw e;
+        }
+      } catch (e) {
+        reject(e);
+      }
+    }
+
+    attemptOnce();
   });
 }
 
-/* =========== API helpers =========== */
-function apiSave(payload){
-  const q = new URLSearchParams({
-    act:'save',
-    nama: payload.nama,
-    tanggal: payload.tanggal,
-    sakit: payload.sakit || '',
-    obat: payload.obat || '',
-    periksa: payload.periksa || ''
-  });
-  return jsonp(API_URL + '?' + q.toString(), {timeout:10000, retries:2});
-}
-function apiHistory(nama, year='all'){
+/* ===== API helpers ===== */
+function apiHistory(nama, year='all') {
   const q = new URLSearchParams({ act:'history', nama, year });
-  return jsonp(API_URL + '?' + q.toString(), {timeout:10000, retries:2});
+  return jsonp(API_URL + '?' + q.toString(), { timeout:15000, retries:2, useProxyFallback:true });
 }
 
-/* =========== UI helpers =========== */
-const qs=id=>document.getElementById(id);
-function flash(type, msg, boxId='flash'){
-  const box = qs(boxId);
-  if(!box) return;
-  box.className = `alert ${type==='err'?'err':'ok'}`;
-  box.textContent = msg;
-  box.style.display = 'block';
-  setTimeout(()=> box.style.display = 'none', 3500);
+/* ===== UI helpers ===== */
+const qs = id => document.getElementById(id);
+function flash(type, msg, elId='flash') {
+  const el = qs(elId);
+  if (!el) return;
+  el.className = 'alert ' + (type === 'err' ? 'err' : 'ok');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(()=> el.style.display = 'none', 3000);
 }
 
-/* Init tanggal & tahun dropdown */
+/* Prefill date & year select */
 (function init(){
-  // tanggal hari ini
-  const el = qs('tanggal');
-  if(el){
-    const n = new Date();
-    el.value = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
-  }
-  // tahun 10 tahun terakhir
-  const ys = qs('year');
-  if(ys){
-    const now = new Date().getFullYear();
-    let html = '<option value="all">Semua</option>';
-    for(let y = now; y >= now-10; y--) html += `<option value="${y}">${y}</option>`;
-    ys.innerHTML = html;
-  }
+  const d = new Date();
+  const dd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  if (qs('tanggal')) qs('tanggal').value = dd;
+
+  const now = d.getFullYear();
+  let html = '<option value="all">Semua</option>';
+  for (let y=now; y>= now-10; y--) html += `<option value="${y}">${y}</option>`;
+  if (qs('year')) qs('year').innerHTML = html;
 })();
 
-/* =========== Save handler (robust) =========== */
-qs('btnSave').addEventListener('click', async function(ev){
-  ev.preventDefault();
-  const btn = this;
-  const payload = {
-    nama: qs('nama').value,
-    tanggal: qs('tanggal').value,
-    sakit: qs('sakit').value.trim(),
-    obat: qs('obat').value.trim(),
-    periksa: qs('periksa').value.trim()
-  };
-  if(!payload.nama || !payload.tanggal){
-    flash('err','Nama dan Tanggal wajib diisi'); return;
-  }
+/* ===== Handle form submit via iframe (doPost will postMessage back) ===== */
+/* Set form action to API_URL (must be /exec from GAS deploy) */
+qs('mainForm').action = API_URL;
 
-  btn.disabled = true;
-  btn.textContent = '⏳ Menyimpan...';
-  flash('ok','Mengirim data...');
-
-  try {
-    const res = await apiSave(payload);
-    if(res && res.ok){
-      flash('ok','Data tersimpan');
+window.addEventListener('message', function(ev){
+  // expected payload from doPost: { type:'saveResult', ok: true/false, result/error: ... }
+  if (!ev.data) return;
+  if (ev.data.type === 'saveResult') {
+    if (ev.data.ok) {
+      flash('ok','Tersimpan');
+      // clear fields except nama & tanggal maybe
+      qs('sakit').value = '';
+      qs('obat').value = '';
+      qs('periksa').value = '';
     } else {
-      throw new Error(res && res.error ? res.error : 'Gagal menyimpan');
+      flash('err', ev.data.error || 'Gagal menyimpan');
+      // show debug link
+      showDebugLink(window.__lastJsonpURL || API_URL + '?act=save');
     }
-  } catch (err) {
-    // fallback: tunjukkan debug link & buka opsi manual
-    const dbg = window.__lastJsonpURL || (API_URL + '?act=save&nama=' + encodeURIComponent(payload.nama));
-    flash('err', 'Gagal menyimpan: ' + (err.message || '') );
-    // tampilkan link debug kecil di bawah tombol
-    const root = document.querySelector('.card .actions');
-    let dbgA = document.getElementById('__dbg_link');
-    if(!dbgA){
-      dbgA = document.createElement('a');
-      dbgA.id = '__dbg_link';
-      dbgA.style.display = 'block';
-      dbgA.style.marginTop = '8px';
-      dbgA.style.color = '#2563eb';
-      dbgA.style.fontSize = '13px';
-      dbgA.textContent = 'Buka URL API (debug)';
-      dbgA.target = '_blank';
-      root.appendChild(dbgA);
-    }
-    dbgA.href = dbg;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '💾 Simpan';
   }
+}, false);
+
+/* If form is submitted, small UX: disable button until iframe responds */
+qs('mainForm').addEventListener('submit', function(e){
+  const btn = qs('btnSave');
+  btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+  // We'll re-enable when message from iframe arrives OR after timeout
+  const timer = setTimeout(()=>{ btn.disabled = false; btn.textContent='💾 Simpan'; }, 10000);
+  // Re-enable when message arrives is handled in message listener above:
+  // but also remove timer on message:
+  const onMsg = function(ev){
+    if (!ev.data || ev.data.type !== 'saveResult') return;
+    clearTimeout(timer);
+    btn.disabled = false; btn.textContent = '💾 Simpan';
+    window.removeEventListener('message', onMsg);
+  };
+  window.addEventListener('message', onMsg);
 });
 
-/* =========== History modal logic =========== */
-let _rawRows = [], _sortDesc = true;
+/* Show debug link for manual testing */
+function showDebugLink(url) {
+  let a = document.getElementById('__dbg_link');
+  if (!a) {
+    a = document.createElement('a');
+    a.id = '__dbg_link';
+    a.style.display = 'block';
+    a.style.marginTop = '8px';
+    a.style.color = '#2563eb';
+    a.style.fontSize = '13px';
+    a.textContent = 'Buka URL API (debug)';
+    qs('flash').parentNode.appendChild(a);
+  }
+  a.href = url;
+  a.target = '_blank';
+}
+
+/* ===== History modal logic (JSONP) ===== */
+let _rows = [], _sortDesc = true;
 
 qs('btnHistory').addEventListener('click', async function(){
-  const nama = qs('nama').value;
+  const nama = qs('nama').value || '';
   const year = qs('year').value || 'all';
   qs('modalTitle').textContent = `History: ${nama || '-'}`;
   qs('modal').classList.add('open');
-  qs('historyRoot').innerHTML = '<div style="padding:12px;color:var(--muted)">Memuat data…</div>';
+  qs('historyRoot').innerHTML = '<div style="padding:8px;color:var(--muted)">Memuat data…</div>';
   try {
     const json = await apiHistory(nama, year);
-    if(!json.ok) throw new Error(json.error || 'Gagal memuat');
-    _rawRows = json.data || [];
-    renderHistoryTable(_rawRows);
+    if (!json.ok) throw new Error(json.error || 'Gagal memuat');
+    _rows = json.data || [];
+    renderHistory();
   } catch (err) {
     const dbg = window.__lastJsonpURL ? `<div style="margin-top:8px"><a href="${window.__lastJsonpURL}" target="_blank">Buka URL API (debug)</a></div>` : '';
-    qs('historyRoot').innerHTML = `<div style="padding:12px;color:#b91c1c">Error: ${err.message || 'Gagal'}</div>` + dbg;
+    qs('historyRoot').innerHTML = `<div style="color:#b91c1c;padding:8px">Error: ${err.message || 'Gagal'}</div>` + dbg;
   }
 });
 
 qs('btnClose').addEventListener('click', ()=> qs('modal').classList.remove('open'));
+qs('btnSort').addEventListener('click', ()=> { _sortDesc = !_sortDesc; qs('btnSort').textContent = _sortDesc ? '🔽 Urut: Terbaru' : '🔼 Urut: Terlama'; renderHistory(); });
+qs('q').addEventListener('input', renderHistory);
 
-qs('btnSort').addEventListener('click', ()=>{
-  _sortDesc = !_sortDesc;
-  qs('btnSort').textContent = _sortDesc ? '🔽 Urut: Terbaru' : '🔼 Urut: Terlama';
-  renderHistoryTable(_rawRows);
-});
-
-qs('q').addEventListener('input', ()=> renderHistoryTable(_rawRows));
-
-function fmtDateView(v){
-  const d = new Date(v);
-  if(!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  return v || '';
-}
-function fmtTsView(v){
-  const d = new Date(v);
-  if(!isNaN(d)) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-  }
-  return v || '';
-}
-
-function filterAndSort(rows){
-  if(!Array.isArray(rows)) return [];
-  const q = qs('q').value.trim().toLowerCase();
-  let data = rows.slice();
-  if(q){
-    data = data.filter(r => [r.Tanggal,r.Sakit,r.Obat,r.Periksa,r.Timestamp].some(v => String(v||'').toLowerCase().includes(q)));
-  }
-  data.sort((a,b) => _sortDesc ? (a.Timestamp < b.Timestamp ? 1 : -1) : (a.Timestamp > b.Timestamp ? 1 : -1));
-  return data;
-}
-
-function renderHistoryTable(rows){
+function renderHistory() {
   const root = qs('historyRoot');
-  const list = filterAndSort(rows);
-  if(!list || list.length === 0){
-    root.innerHTML = '<div style="padding:12px;color:var(--muted)">Belum ada data untuk kriteria ini.</div>';
-    return;
+  if (!Array.isArray(_rows) || _rows.length === 0) {
+    root.innerHTML = '<div style="padding:8px;color:var(--muted)">Belum ada data.</div>'; return;
   }
-  const table = document.createElement('table'); table.className = 'table';
+  // filter by search text
+  const q = qs('q').value.trim().toLowerCase();
+  let list = _rows.slice();
+  if (q) list = list.filter(r => [r.Tanggal, r.Sakit, r.Obat, r.Periksa, r.Timestamp].some(v => String(v||'').toLowerCase().includes(q)));
+  // sort
+  list.sort((a,b)=> _sortDesc ? (a.Timestamp < b.Timestamp ? 1 : -1) : (a.Timestamp > b.Timestamp ? 1 : -1));
+  // build table
+  const tbl = document.createElement('table'); tbl.className = 'table';
   const thead = document.createElement('thead'); const trh = document.createElement('tr');
   ['Tanggal','Sakit','Obat','Periksa','Timestamp'].forEach(h => { const th = document.createElement('th'); th.textContent = h; trh.appendChild(th); });
-  thead.appendChild(trh); table.appendChild(thead);
+  thead.appendChild(trh); tbl.appendChild(thead);
   const tbody = document.createElement('tbody');
   list.forEach(r => {
     const tr = document.createElement('tr');
-    const cells = [fmtDateView(r.Tanggal), r.Sakit, r.Obat, r.Periksa, fmtTsView(r.Timestamp)];
-    cells.forEach(c => { const td = document.createElement('td'); td.textContent = c || ''; tr.appendChild(td); });
+    const vals = [fmtDate(r.Tanggal), r.Sakit||'', r.Obat||'', r.Periksa||'', fmtTs(r.Timestamp)];
+    vals.forEach(v => { const td = document.createElement('td'); td.textContent = v || ''; tr.appendChild(td); });
     tbody.appendChild(tr);
   });
-  table.appendChild(tbody);
-  root.innerHTML = ''; root.appendChild(table);
+  tbl.appendChild(tbody);
+  root.innerHTML = ''; root.appendChild(tbl);
 }
+
+function fmtDate(v){ const d = new Date(v); if (!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; return v||''; }
+function fmtTs(v){ const d = new Date(v); if (!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; return v||''; }
+
 </script>
 </body>
 </html>
