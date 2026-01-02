@@ -16,15 +16,18 @@ body{margin:0;font-family:Arial;background:var(--bg);color:var(--text)}
 label{font-weight:bold}
 input,select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border)}
 textarea{min-height:80px}
-button{padding:10px 14px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
+button{padding:8px 12px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-ghost{background:#f3f4f6;border:1px solid var(--border)}
+.date-row{display:flex;gap:6px;margin-bottom:6px}
+.date-row button{padding:6px 8px}
 .spinner{width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;display:inline-block;animation:spin .8s linear infinite;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .alert{display:none;margin-top:10px;padding:8px;border-radius:8px;font-weight:bold}
 .ok{background:#dcfce7;color:#065f46}
 .err{background:#fee2e2;color:#7f1d1d}
 
+/* modal history */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center}
 .modal.open{display:flex}
 .sheet{background:#fff;width:min(100%,900px);max-height:80vh;overflow:auto;padding:12px;border-radius:10px}
@@ -55,9 +58,11 @@ button{padding:10px 14px;border:none;border-radius:8px;font-weight:bold;cursor:p
     </div>
   </div>
 
-  <div>
-    <label>Tanggal</label>
-    <input type="date" id="tanggal" name="tanggal">
+  <div class="full">
+    <label>Tanggal (boleh lebih dari satu)</label>
+    <div id="dates"></div>
+    <button type="button" id="addDate" class="btn-ghost">➕ Tambah Tanggal</button>
+    <input type="hidden" name="tanggal" id="tanggal">
   </div>
 </div>
 
@@ -74,7 +79,7 @@ button{padding:10px 14px;border:none;border-radius:8px;font-weight:bold;cursor:p
 </div>
 </div>
 
-<!-- MODAL HISTORY -->
+<!-- MODAL HISTORY (tidak berubah) -->
 <div class="modal" id="modal">
   <div class="sheet">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
@@ -90,17 +95,42 @@ button{padding:10px 14px;border:none;border-radius:8px;font-weight:bold;cursor:p
 /* ================= CONFIG ================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbw3Wq8Kmk_2tItiHRO6Kv0p4QJ_V-YiWkMwYQU2RGHKhlnJNSfE0x_5RPy1xeN0CNnX/exec';
 
-/* ================= SUBMIT ================= */
-const form = document.getElementById('form');
-const btn = document.getElementById('btnSave');
-const alertBox = document.getElementById('alert');
-const iframe = document.getElementById('hidden_iframe');
+/* ================= MULTI DATE ================= */
+const datesBox=document.getElementById('dates');
+const hiddenTanggal=document.getElementById('tanggal');
 
-form.action = API_URL;
+function addDate(val=''){
+  const row=document.createElement('div');
+  row.className='date-row';
+  row.innerHTML=`
+    <input type="date" value="${val}">
+    <button type="button">❌</button>
+  `;
+  row.querySelector('button').onclick=()=>row.remove();
+  datesBox.appendChild(row);
+}
+
+document.getElementById('addDate').onclick=()=>addDate();
+
+// default 1 tanggal hari ini
+addDate(new Date().toISOString().slice(0,10));
+
+/* ================= SUBMIT ================= */
+const form=document.getElementById('form');
+const btn=document.getElementById('btnSave');
+const alertBox=document.getElementById('alert');
+const iframe=document.getElementById('hidden_iframe');
+
+form.action=API_URL;
 
 let confirmed=false, timeoutId;
 
 form.addEventListener('submit',()=>{
+  // gabungkan tanggal
+  const vals=[...datesBox.querySelectorAll('input')]
+    .map(i=>i.value).filter(Boolean);
+  hiddenTanggal.value=vals.join(',');
+
   confirmed=false;
   btn.disabled=true;
   btn.innerHTML='<span class="spinner"></span>Menyimpan...';
@@ -119,7 +149,7 @@ window.addEventListener('message',(e)=>{
   confirmed=true; clearTimeout(timeoutId);
   resetBtn();
   e.data.ok ? showOk('✅ Data berhasil disimpan') : showErr(e.data.error||'Gagal');
-  if(e.data.ok) form.reset();
+  if(e.data.ok) form.reset(), datesBox.innerHTML='', addDate(new Date().toISOString().slice(0,10));
 });
 
 iframe.addEventListener('load',()=>{
@@ -132,97 +162,6 @@ iframe.addEventListener('load',()=>{
 function resetBtn(){btn.disabled=false;btn.innerHTML='💾 Simpan'}
 function showOk(m){alertBox.className='alert ok';alertBox.textContent=m;alertBox.style.display='block'}
 function showErr(m){alertBox.className='alert err';alertBox.textContent=m;alertBox.style.display='block'}
-
-/* ================= HISTORY ================= */
-function jsonp(url){
-  return new Promise((res,rej)=>{
-    const cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
-    window[cb]=(d)=>{delete window[cb];s.remove();res(d)};
-    const s=document.createElement('script');
-    s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
-    s.onerror=()=>rej();
-    document.body.appendChild(s);
-  });
-}
-
-let allRows=[];
-
-document.getElementById('btnHistory').onclick=async()=>{
-  const nama=document.getElementById('nama').value;
-  modal.classList.add('open');
-  modalTitle.textContent='History: '+nama;
-  historyRoot.textContent='Memuat...';
-  try{
-    const j=await jsonp(API_URL+'?act=history&nama='+encodeURIComponent(nama));
-    allRows=j.data||[];
-    buildYearFilter(allRows);
-    renderHistory();
-  }catch{
-    historyRoot.textContent='Gagal memuat data';
-  }
-};
-
-btnClose.onclick=()=>modal.classList.remove('open');
-
-yearFilter.onchange=renderHistory;
-
-/* ===== FORMAT & FILTER ===== */
-function fmtDate(val){
-  if(!val) return '';
-  const d=new Date(val);
-  if(isNaN(d)) return val;
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-
-function buildYearFilter(rows){
-  const years=new Set();
-  rows.forEach(r=>{
-    const d=new Date(r.Tanggal||r.Timestamp);
-    if(!isNaN(d)) years.add(d.getFullYear());
-  });
-
-  const y=[...years].sort((a,b)=>b-a);
-  yearFilter.innerHTML='<option value="all">Semua Tahun</option>'+
-    y.map(v=>`<option value="${v}">${v}</option>`).join('');
-}
-
-function renderHistory(){
-  let rows=[...allRows];
-  const y=yearFilter.value;
-
-  if(y!=='all'){
-    rows=rows.filter(r=>{
-      const d=new Date(r.Tanggal||r.Timestamp);
-      return !isNaN(d)&&d.getFullYear()==y;
-    });
-  }
-
-  rows.sort((a,b)=>{
-    const da=new Date(a.Tanggal||a.Timestamp||0);
-    const db=new Date(b.Tanggal||b.Timestamp||0);
-    return db-da;
-  });
-
-  if(!rows.length){
-    historyRoot.textContent='Belum ada data';
-    return;
-  }
-
-  let html='<table class="table"><tr><th>Tanggal</th><th>Sakit</th><th>Obat</th><th>Periksa</th></tr>';
-  rows.forEach(r=>{
-    html+=`
-      <tr>
-        <td>${fmtDate(r.Tanggal)}</td>
-        <td>${r.Sakit||''}</td>
-        <td>${r.Obat||''}</td>
-        <td>${r.Periksa||''}</td>
-      </tr>`;
-  });
-  historyRoot.innerHTML=html+'</table>';
-}
-
-/* init tanggal */
-document.getElementById('tanggal').value=new Date().toISOString().slice(0,10);
 </script>
 </body>
 </html>
