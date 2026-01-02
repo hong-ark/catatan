@@ -59,29 +59,53 @@ const alertBox = document.getElementById('alert');
 
 form.action = API_URL;
 
-form.addEventListener('submit', ()=>{
-  btn.classList.add('loading');
+let saveTimer;
+
+form.addEventListener('submit', () => {
+  btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Menyimpan...';
-  alertBox.style.display='none';
+  alertBox.style.display = 'none';
+
+  // timeout pengaman (jika postMessage gagal)
+  saveTimer = setTimeout(() => {
+    resetBtn();
+    showErr('Gagal menyimpan (timeout)');
+  }, 6000);
 });
 
-window.addEventListener('message', e=>{
-  if(!e.data || e.data.type!=='saveResult') return;
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'saveResult') return;
 
-  btn.classList.remove('loading');
-  btn.innerHTML='💾 Simpan';
+  clearTimeout(saveTimer);
+  resetBtn();
 
-  if(e.data.ok){
-    alertBox.className='alert ok';
-    alertBox.textContent='✅ Data berhasil disimpan';
+  if (e.data.ok) {
+    showOk('✅ Data berhasil disimpan');
     form.reset();
-  }else{
-    alertBox.className='alert err';
-    alertBox.textContent='❌ Gagal: '+e.data.error;
+  } else {
+    showErr('❌ ' + (e.data.error || 'Gagal'));
   }
-  alertBox.style.display='block';
 });
+
+function resetBtn(){
+  btn.disabled = false;
+  btn.innerHTML = '💾 Simpan';
+}
+
+function showOk(msg){
+  alertBox.className = 'alert ok';
+  alertBox.textContent = msg;
+  alertBox.style.display = 'block';
+}
+
+function showErr(msg){
+  alertBox.className = 'alert err';
+  alertBox.textContent = msg;
+  alertBox.style.display = 'block';
+}
 </script>
+
 
 </body>
 </html>
+
