@@ -2,124 +2,176 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Catatan Kesehatan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catatan Kesehatan Keluarga</title>
+
 <style>
-body{font-family:Arial;background:#f5f7fb}
-.card{max-width:500px;margin:40px auto;background:#fff;padding:20px;border-radius:12px}
+:root{ --bg:#f5f7fb; --card:#fff; --text:#111827; --muted:#6b7280; --border:#e5e7eb; --primary:#4f46e5; }
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial;background:var(--bg);color:var(--text)}
+.wrap{max-width:980px;margin:24px auto;padding:16px}
+.card{background:#fff;padding:16px;border-radius:12px;border:1px solid var(--border)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
 label{font-weight:bold}
-input,textarea,select{width:100%;margin-bottom:10px;padding:8px}
-button{padding:10px;border:none;border-radius:8px;background:#4f46e5;color:#fff;font-weight:bold}
-button.loading{opacity:.7;pointer-events:none}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px}
+input,select,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid var(--border)}
+textarea{min-height:80px}
+button{padding:10px 14px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-ghost{background:#f3f4f6;border:1px solid var(--border)}
+.spinner{width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;display:inline-block;animation:spin .8s linear infinite;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .alert{display:none;margin-top:10px;padding:8px;border-radius:8px;font-weight:bold}
 .ok{background:#dcfce7;color:#065f46}
 .err{background:#fee2e2;color:#7f1d1d}
+
+/* modal history */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center}
+.modal.open{display:flex}
+.sheet{background:#fff;width:min(100%,900px);max-height:80vh;overflow:auto;padding:12px;border-radius:10px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border-bottom:1px solid var(--border);padding:6px;text-align:left}
 </style>
 </head>
-<body>
 
+<body>
+<div class="wrap">
 <div class="card">
-<h3>Catatan Kesehatan</h3>
 
 <iframe name="hidden_iframe" id="hidden_iframe" style="display:none"></iframe>
 
 <form id="form" target="hidden_iframe" method="post">
 <input type="hidden" name="act" value="save">
 
-<label>Nama</label>
-<select name="nama">
-  <option>ABIEL</option>
-  <option>PAPA</option>
-  <option>MAMA</option>
-</select>
+<div class="grid">
+  <div class="full">
+    <label>Nama</label>
+    <div style="display:flex;gap:8px">
+      <select id="nama" name="nama">
+        <option>ABIEL</option>
+        <option>PAPA</option>
+        <option>MAMA</option>
+      </select>
+      <button type="button" id="btnHistory" class="btn-ghost">📜 History</button>
+    </div>
+  </div>
 
-<label>Tanggal</label>
-<input type="date" name="tanggal" required>
+  <div>
+    <label>Tanggal</label>
+    <input type="date" id="tanggal" name="tanggal">
+  </div>
+</div>
 
-<label>Sakit</label>
-<textarea name="sakit"></textarea>
+<div class="grid" style="margin-top:12px">
+  <div class="full"><label>Sakit</label><textarea name="sakit"></textarea></div>
+  <div class="full"><label>Obat</label><textarea name="obat"></textarea></div>
+  <div class="full"><label>Periksa</label><textarea name="periksa"></textarea></div>
+</div>
 
-<label>Obat</label>
-<textarea name="obat"></textarea>
-
-<label>Periksa</label>
-<textarea name="periksa"></textarea>
-
-<button id="btn">💾 Simpan</button>
+<button id="btnSave" class="btn-primary" style="margin-top:12px">💾 Simpan</button>
 <div id="alert" class="alert"></div>
 </form>
+
+</div>
+</div>
+
+<!-- MODAL HISTORY -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <strong id="modalTitle">History</strong>
+      <button id="btnClose" class="btn-ghost">Tutup</button>
+    </div>
+    <input id="q" placeholder="Cari..." style="margin-bottom:8px">
+    <div id="historyRoot"></div>
+  </div>
 </div>
 
 <script>
+/* ================= CONFIG ================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbw3Wq8Kmk_2tItiHRO6Kv0p4QJ_V-YiWkMwYQU2RGHKhlnJNSfE0x_5RPy1xeN0CNnX/exec';
+
+/* ================= SUBMIT ================= */
 const form = document.getElementById('form');
-const btn = document.getElementById('btn');
+const btn = document.getElementById('btnSave');
 const alertBox = document.getElementById('alert');
 const iframe = document.getElementById('hidden_iframe');
 
 form.action = API_URL;
 
-let confirmed = false;
-let timeoutId;
+let confirmed=false, timeoutId;
 
-form.addEventListener('submit', () => {
-  confirmed = false;
+form.addEventListener('submit',()=>{
+  confirmed=false;
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span>Menyimpan...';
+  alertBox.style.display='none';
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Menyimpan...';
-  alertBox.style.display = 'none';
-
-  // timeout lebih panjang & lebih ramah
-  timeoutId = setTimeout(() => {
-    if (!confirmed) {
-      btn.disabled = false;
-      btn.innerHTML = '💾 Simpan';
-      alertBox.className = 'alert ok';
-      alertBox.textContent = '⚠️ Data kemungkinan sudah tersimpan (konfirmasi lambat)';
-      alertBox.style.display = 'block';
+  timeoutId=setTimeout(()=>{
+    if(!confirmed){
+      resetBtn();
+      showOk('⚠️ Data kemungkinan sudah tersimpan');
     }
-  }, 15000); // 15 detik
+  },15000);
 });
 
-window.addEventListener('message', (e) => {
-  if (!e.data || e.data.type !== 'saveResult') return;
-
-  confirmed = true;
-  clearTimeout(timeoutId);
-
-  btn.disabled = false;
-  btn.innerHTML = '💾 Simpan';
-
-  if (e.data.ok) {
-    alertBox.className = 'alert ok';
-    alertBox.textContent = '✅ Data berhasil disimpan';
-    form.reset();
-  } else {
-    alertBox.className = 'alert err';
-    alertBox.textContent = '❌ ' + (e.data.error || 'Gagal');
-  }
-  alertBox.style.display = 'block';
+window.addEventListener('message',(e)=>{
+  if(!e.data||e.data.type!=='saveResult')return;
+  confirmed=true; clearTimeout(timeoutId);
+  resetBtn();
+  e.data.ok ? showOk('✅ Data berhasil disimpan') : showErr(e.data.error||'Gagal');
+  if(e.data.ok) form.reset();
 });
 
-// fallback terakhir: iframe selesai load tapi postMessage tidak datang
-iframe.addEventListener('load', () => {
-  if (!confirmed) {
-    confirmed = true;
-    clearTimeout(timeoutId);
-    btn.disabled = false;
-    btn.innerHTML = '💾 Simpan';
-    alertBox.className = 'alert ok';
-    alertBox.textContent = '✅ Data tersimpan';
-    alertBox.style.display = 'block';
+iframe.addEventListener('load',()=>{
+  if(!confirmed){
+    confirmed=true; clearTimeout(timeoutId);
+    resetBtn(); showOk('✅ Data tersimpan');
   }
 });
+
+function resetBtn(){btn.disabled=false;btn.innerHTML='💾 Simpan'}
+function showOk(m){alertBox.className='alert ok';alertBox.textContent=m;alertBox.style.display='block'}
+function showErr(m){alertBox.className='alert err';alertBox.textContent=m;alertBox.style.display='block'}
+
+/* ================= HISTORY (JSONP) ================= */
+function jsonp(url){
+  return new Promise((res,rej)=>{
+    const cb='cb_'+Date.now();
+    window[cb]=(d)=>{delete window[cb];s.remove();res(d)};
+    const s=document.createElement('script');
+    s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+    s.onerror=()=>rej();
+    document.body.appendChild(s);
+  });
+}
+
+document.getElementById('btnHistory').onclick=async()=>{
+  const nama=document.getElementById('nama').value;
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('modalTitle').textContent='History: '+nama;
+  document.getElementById('historyRoot').textContent='Memuat...';
+  try{
+    const j=await jsonp(API_URL+'?act=history&nama='+encodeURIComponent(nama));
+    renderHistory(j.data||[]);
+  }catch{
+    document.getElementById('historyRoot').textContent='Gagal memuat data';
+  }
+};
+
+document.getElementById('btnClose').onclick=()=>document.getElementById('modal').classList.remove('open');
+
+function renderHistory(rows){
+  if(!rows.length){historyRoot.textContent='Belum ada data';return}
+  let html='<table class="table"><tr><th>Tanggal</th><th>Sakit</th><th>Obat</th><th>Periksa</th></tr>';
+  rows.forEach(r=>{
+    html+=`<tr><td>${r.Tanggal||''}</td><td>${r.Sakit||''}</td><td>${r.Obat||''}</td><td>${r.Periksa||''}</td></tr>`;
+  });
+  historyRoot.innerHTML=html+'</table>';
+}
+
+/* init tanggal */
+document.getElementById('tanggal').value=new Date().toISOString().slice(0,10);
 </script>
-
 </body>
 </html>
-
-
-
-
-
