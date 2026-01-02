@@ -25,7 +25,6 @@ button{padding:10px 14px;border:none;border-radius:8px;font-weight:bold;cursor:p
 .ok{background:#dcfce7;color:#065f46}
 .err{background:#fee2e2;color:#7f1d1d}
 
-/* modal history */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center}
 .modal.open{display:flex}
 .sheet{background:#fff;width:min(100%,900px);max-height:80vh;overflow:auto;padding:12px;border-radius:10px}
@@ -78,8 +77,9 @@ button{padding:10px 14px;border:none;border-radius:8px;font-weight:bold;cursor:p
 <!-- MODAL HISTORY -->
 <div class="modal" id="modal">
   <div class="sheet">
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
       <strong id="modalTitle">History</strong>
+      <select id="yearFilter"></select>
       <button id="btnClose" class="btn-ghost">Tutup</button>
     </div>
     <div id="historyRoot"></div>
@@ -133,7 +133,7 @@ function resetBtn(){btn.disabled=false;btn.innerHTML='💾 Simpan'}
 function showOk(m){alertBox.className='alert ok';alertBox.textContent=m;alertBox.style.display='block'}
 function showErr(m){alertBox.className='alert err';alertBox.textContent=m;alertBox.style.display='block'}
 
-/* ================= HISTORY (JSONP) ================= */
+/* ================= HISTORY ================= */
 function jsonp(url){
   return new Promise((res,rej)=>{
     const cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
@@ -145,22 +145,28 @@ function jsonp(url){
   });
 }
 
+let allRows=[];
+
 document.getElementById('btnHistory').onclick=async()=>{
   const nama=document.getElementById('nama').value;
-  document.getElementById('modal').classList.add('open');
-  document.getElementById('modalTitle').textContent='History: '+nama;
-  document.getElementById('historyRoot').textContent='Memuat...';
+  modal.classList.add('open');
+  modalTitle.textContent='History: '+nama;
+  historyRoot.textContent='Memuat...';
   try{
     const j=await jsonp(API_URL+'?act=history&nama='+encodeURIComponent(nama));
-    renderHistory(j.data||[]);
+    allRows=j.data||[];
+    buildYearFilter(allRows);
+    renderHistory();
   }catch{
-    document.getElementById('historyRoot').textContent='Gagal memuat data';
+    historyRoot.textContent='Gagal memuat data';
   }
 };
 
-document.getElementById('btnClose').onclick=()=>document.getElementById('modal').classList.remove('open');
+btnClose.onclick=()=>modal.classList.remove('open');
 
-/* ===== FORMAT & SORT ===== */
+yearFilter.onchange=renderHistory;
+
+/* ===== FORMAT & FILTER ===== */
 function fmtDate(val){
   if(!val) return '';
   const d=new Date(val);
@@ -168,18 +174,39 @@ function fmtDate(val){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-function renderHistory(rows){
-  if(!rows.length){
-    historyRoot.textContent='Belum ada data';
-    return;
+function buildYearFilter(rows){
+  const years=new Set();
+  rows.forEach(r=>{
+    const d=new Date(r.Tanggal||r.Timestamp);
+    if(!isNaN(d)) years.add(d.getFullYear());
+  });
+
+  const y=[...years].sort((a,b)=>b-a);
+  yearFilter.innerHTML='<option value="all">Semua Tahun</option>'+
+    y.map(v=>`<option value="${v}">${v}</option>`).join('');
+}
+
+function renderHistory(){
+  let rows=[...allRows];
+  const y=yearFilter.value;
+
+  if(y!=='all'){
+    rows=rows.filter(r=>{
+      const d=new Date(r.Tanggal||r.Timestamp);
+      return !isNaN(d)&&d.getFullYear()==y;
+    });
   }
 
-  // 🔽 URUTKAN TANGGAL TERBARU
   rows.sort((a,b)=>{
     const da=new Date(a.Tanggal||a.Timestamp||0);
     const db=new Date(b.Tanggal||b.Timestamp||0);
     return db-da;
   });
+
+  if(!rows.length){
+    historyRoot.textContent='Belum ada data';
+    return;
+  }
 
   let html='<table class="table"><tr><th>Tanggal</th><th>Sakit</th><th>Obat</th><th>Periksa</th></tr>';
   rows.forEach(r=>{
