@@ -94,6 +94,106 @@ button{padding:8px 12px;border:none;border-radius:8px;font-weight:bold;cursor:po
 <script>
 /* ================= CONFIG ================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbw3Wq8Kmk_2tItiHRO6Kv0p4QJ_V-YiWkMwYQU2RGHKhlnJNSfE0x_5RPy1xeN0CNnX/exec';
+  /* ================= HISTORY ================= */
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const historyRoot = document.getElementById('historyRoot');
+const yearFilter = document.getElementById('yearFilter');
+const btnClose = document.getElementById('btnClose');
+
+function jsonp(url){
+  return new Promise((res,rej)=>{
+    const cb='cb_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+    window[cb]=(d)=>{delete window[cb];s.remove();res(d)};
+    const s=document.createElement('script');
+    s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;
+    s.onerror=()=>rej(new Error('JSONP error'));
+    document.body.appendChild(s);
+  });
+}
+
+let allRows = [];
+
+document.getElementById('btnHistory').onclick = async () => {
+  const nama = document.getElementById('nama').value;
+  modal.classList.add('open');
+  modalTitle.textContent = 'History: ' + nama;
+  historyRoot.textContent = 'Memuat data...';
+
+  try {
+    const j = await jsonp(
+      API_URL + '?act=history&nama=' + encodeURIComponent(nama)
+    );
+    allRows = j.data || [];
+    buildYearFilter(allRows);
+    renderHistory();
+  } catch (e) {
+    historyRoot.textContent = 'Gagal memuat history';
+  }
+};
+
+btnClose.onclick = () => modal.classList.remove('open');
+yearFilter.onchange = renderHistory;
+
+function fmtDate(val){
+  if(!val) return '';
+  const d = new Date(val);
+  if(isNaN(d)) return val;
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+
+function buildYearFilter(rows){
+  const years = new Set();
+  rows.forEach(r=>{
+    const d=new Date(r.Tanggal || r.Timestamp);
+    if(!isNaN(d)) years.add(d.getFullYear());
+  });
+  const list=[...years].sort((a,b)=>b-a);
+  yearFilter.innerHTML =
+    '<option value="all">Semua Tahun</option>' +
+    list.map(y=>`<option value="${y}">${y}</option>`).join('');
+}
+
+function renderHistory(){
+  let rows=[...allRows];
+  const y=yearFilter.value;
+
+  if(y!=='all'){
+    rows=rows.filter(r=>{
+      const d=new Date(r.Tanggal||r.Timestamp);
+      return !isNaN(d)&&d.getFullYear()==y;
+    });
+  }
+
+  rows.sort((a,b)=>{
+    const da=new Date(a.Tanggal||a.Timestamp||0);
+    const db=new Date(b.Tanggal||b.Timestamp||0);
+    return db-da;
+  });
+
+  if(!rows.length){
+    historyRoot.textContent='Belum ada data';
+    return;
+  }
+
+  let html='<table class="table"><tr>' +
+           '<th>Tanggal</th><th>Sakit</th><th>Obat</th><th>Periksa</th></tr>';
+
+  rows.forEach(r=>{
+    html+=`
+      <tr>
+        <td>${fmtDate(r.Tanggal)}</td>
+        <td>${r.Sakit||''}</td>
+        <td>${r.Obat||''}</td>
+        <td>${r.Periksa||''}</td>
+      </tr>`;
+  });
+
+  historyRoot.innerHTML = html + '</table>';
+}
+
 
 /* ================= MULTI DATE ================= */
 const datesBox=document.getElementById('dates');
@@ -165,3 +265,4 @@ function showErr(m){alertBox.className='alert err';alertBox.textContent=m;alertB
 </script>
 </body>
 </html>
+
