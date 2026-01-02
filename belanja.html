@@ -3,83 +3,192 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Belanja Bulanan</title>
+<title>Tabel Belanja Bulanan</title>
 
 <style>
 body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  background: #f8fafc;
   margin: 0;
-  padding: 16px;
+  padding: 14px;
 }
-h2 {
-  margin-top: 24px;
-}
-.card {
-  background: white;
-  border-radius: 12px;
-  padding: 12px;
+
+h1 {
+  text-align: center;
   margin-bottom: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
-.qty {
-  font-weight: bold;
-  color: #d35400;
+
+h2 {
+  margin-top: 22px;
+  font-size: 16px;
+  color: #334155;
 }
-.total {
-  font-weight: bold;
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  margin-bottom: 20px;
+}
+
+th, td {
+  padding: 8px 6px;
+  font-size: 13px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+th {
+  background: #f1f5f9;
+  font-weight: 600;
+}
+
+td.name {
+  text-align: left;
+  font-weight: 600;
+}
+
+.buy {
+  font-weight: 700;
+  color: #dc2626;
+}
+
+tr.done {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+input[type="checkbox"] {
+  transform: scale(1.2);
+}
+
+.btn-export {
+  background: #25D366; /* warna WhatsApp */
+  color: white;
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🛒 Belanja Bulanan</h1>
-<div id="content"></div>
-<h2 id="grandTotal"></h2>
+<h1>🛒 Tabel Belanja Bulanan</h1>
+
+<button class="btn-export" onclick="exportWhatsApp()">📤 Kirim ke WhatsApp</button>
+
+<div id="content">Memuat data...</div>
 
 <script>
-const SHEET_URL = "https://opensheet.elk.sh/1QNnNQ27a0CjMzq9w8TePUTvzyAZ2z98SkDIKz5E1nqU/DATA";
+const API_URL = "https://script.google.com/macros/s/AKfycbyN8h-L0yTi34iFijHdbD7waX0C1ZFYavsByjmuY3khu5I3w1G54811dif4pkfAS_7K6w/exec";
 
-fetch(SHEET_URL)
+fetch(API_URL)
   .then(res => res.json())
-  .then(data => {
-    const content = document.getElementById("content");
-    let totalAll = 0;
+  .then(data => render(data));
 
-    const categories = [...new Set(data.map(i => i.KATEGORI))];
+function render(data) {
+  const content = document.getElementById("content");
+  content.innerHTML = "";
 
-    categories.forEach(cat => {
-      content.innerHTML += `<h2>${cat}</h2>`;
+  const categories = [...new Set(data.map(i => i.KATEGORI))];
 
-      data.filter(i => 
-        i.KATEGORI === cat && i.AKTIF === "TRUE"
-      ).forEach(item => {
+  categories.forEach(cat => {
+    let rows = "";
 
-        const target = Number(item["STOCK TARGET"]);
+    data
+      .filter(i =>
+        i.KATEGORI === cat &&
+        (i.AKTIF === true || i.AKTIF === "TRUE")
+      )
+      .forEach(item => {
         const stock = Number(item["STOCK TERSEDIA"]);
-        const harga = Number(item.HARGA);
-        const qty = target - stock;
+        const target = Number(item["STOCK TARGET"]);
+        const beli = Math.max(target - stock, 0);
 
-        if (qty > 0) {
-          const total = qty * harga;
-          totalAll += total;
+        if (beli > 0) {
+          const checked = item.DIBELI === true || item.DIBELI === "TRUE";
+          const satuan = item.SATUAN || "";
 
-          content.innerHTML += `
-            <div class="card">
-              <div><strong>${item["NAMA BARANG"]}</strong></div>
-              <div>Stok: ${stock} / Target: ${target} ${item.SATUAN}</div>
-              <div class="qty">Beli: ${qty} ${item.SATUAN}</div>
-              <div class="total">Rp ${total.toLocaleString()}</div>
-            </div>
+          rows += `
+            <tr class="${checked ? "done" : ""}">
+              <td>
+                <input type="checkbox"
+                  ${checked ? "checked" : ""}
+                  onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked, this)">
+              </td>
+              <td class="name">${item["NAMA BARANG"]}</td>
+              <td class="buy">${beli} ${satuan}</td>
+              <td>${stock}</td>
+              <td>${target}</td>
+            </tr>
           `;
         }
       });
-    });
 
-    document.getElementById("grandTotal")
-      .innerText = "Total Belanja: Rp " + totalAll.toLocaleString();
+    if (rows) {
+      content.innerHTML += `
+        <h2>${cat}</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>✔</th>
+              <th>Barang</th>
+              <th>Pembelian</th>
+              <th>Stok</th>
+              <th>Target</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+    }
   });
+}
+
+function toggleCheck(nama, checked, el) {
+  const row = el.closest("tr");
+  row.classList.toggle("done", checked);
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      nama: nama,
+      dibeli: checked
+    })
+  });
+}
+
+function exportWhatsApp() {
+  let text = "🛒 DAFTAR BELANJA BULANAN\n\n";
+
+  document.querySelectorAll("tbody tr").forEach(row => {
+    if (!row.classList.contains("done")) {
+      const cols = row.querySelectorAll("td");
+      const nama = cols[1].innerText;
+      const beli = cols[2].innerText;
+      text += `• ${nama} – ${beli}\n`;
+    }
+  });
+
+  if (text.trim() === "") {
+    alert("Semua barang sudah dibeli 👍");
+    return;
+  }
+
+  const encodedText = encodeURIComponent(text);
+  const waUrl = `https://wa.me/?text=${encodedText}`;
+  window.open(waUrl, "_blank");
+}
 </script>
 
 </body>
