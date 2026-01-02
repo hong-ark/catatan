@@ -56,56 +56,69 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbw3Wq8Kmk_2tItiHRO6Kv0p
 const form = document.getElementById('form');
 const btn = document.getElementById('btn');
 const alertBox = document.getElementById('alert');
+const iframe = document.getElementById('hidden_iframe');
 
 form.action = API_URL;
 
-let saveTimer;
+let confirmed = false;
+let timeoutId;
 
 form.addEventListener('submit', () => {
+  confirmed = false;
+
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Menyimpan...';
   alertBox.style.display = 'none';
 
-  // timeout pengaman (jika postMessage gagal)
-  saveTimer = setTimeout(() => {
-    resetBtn();
-    showErr('Gagal menyimpan (timeout)');
-  }, 6000);
+  // timeout lebih panjang & lebih ramah
+  timeoutId = setTimeout(() => {
+    if (!confirmed) {
+      btn.disabled = false;
+      btn.innerHTML = '💾 Simpan';
+      alertBox.className = 'alert ok';
+      alertBox.textContent = '⚠️ Data kemungkinan sudah tersimpan (konfirmasi lambat)';
+      alertBox.style.display = 'block';
+    }
+  }, 15000); // 15 detik
 });
 
 window.addEventListener('message', (e) => {
   if (!e.data || e.data.type !== 'saveResult') return;
 
-  clearTimeout(saveTimer);
-  resetBtn();
+  confirmed = true;
+  clearTimeout(timeoutId);
 
-  if (e.data.ok) {
-    showOk('✅ Data berhasil disimpan');
-    form.reset();
-  } else {
-    showErr('❌ ' + (e.data.error || 'Gagal'));
-  }
-});
-
-function resetBtn(){
   btn.disabled = false;
   btn.innerHTML = '💾 Simpan';
-}
 
-function showOk(msg){
-  alertBox.className = 'alert ok';
-  alertBox.textContent = msg;
+  if (e.data.ok) {
+    alertBox.className = 'alert ok';
+    alertBox.textContent = '✅ Data berhasil disimpan';
+    form.reset();
+  } else {
+    alertBox.className = 'alert err';
+    alertBox.textContent = '❌ ' + (e.data.error || 'Gagal');
+  }
   alertBox.style.display = 'block';
-}
+});
 
-function showErr(msg){
-  alertBox.className = 'alert err';
-  alertBox.textContent = msg;
-  alertBox.style.display = 'block';
-}
-</script>
-
+// fallback terakhir: iframe selesai load tapi postMessage tidak datang
+iframe.addEventListener('load', () => {
+  if (!confirmed) {
+    confirmed = true;
+    clearTimeout(timeoutId);
+    btn.disabled = false;
+    btn.innerHTML = '💾 Simpan';
+    alertBox.className = 'alert ok';
+    alertBox.textContent = '✅ Data tersimpan';
+    alertBox.style.display = 'block';
+  }
+});
+return HtmlService.createHtmlOutput(
+  '<script>parent.postMessage({type:"saveResult",ok:true},"*");</script>'
+);
 
 </body>
 </html>
+
 
