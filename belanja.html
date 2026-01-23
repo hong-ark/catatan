@@ -105,7 +105,7 @@ function render(data) {
       (i.AKTIF === true || i.AKTIF === "TRUE")
     );
 
-    // 🔽 SORT: yang perlu dibeli di atas, stok aman di bawah
+    // sort: perlu dibeli di atas
     items.sort((a, b) => {
       const beliA = Math.max(a["STOCK TARGET"] - a["STOCK TERSEDIA"], 0);
       const beliB = Math.max(b["STOCK TARGET"] - b["STOCK TERSEDIA"], 0);
@@ -129,7 +129,7 @@ function render(data) {
             <input type="checkbox"
               ${isSafe ? "disabled" : ""}
               ${item.DIBELI === "TRUE" && !isSafe ? "checked" : ""}
-              onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked, this)">
+              onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked)">
           </td>
         </tr>
       `;
@@ -165,9 +165,6 @@ function toggleCheck(nama, checked) {
   });
 }
 
-/* fungsi addItem(), editStock(), exportWhatsApp() 
-   tetap sama seperti versi sebelumnya */
-  <script>
 // ➕ TAMBAH BARANG
 function addItem(cat) {
   const nama = prompt("Nama barang:");
@@ -193,51 +190,42 @@ function addItem(cat) {
 
 // ✏️ EDIT STOK (MODE PILIH BARANG)
 function editStock(category) {
-  fetch(API_URL)
-    .then(r => r.json())
-    .then(data => {
-      const items = data.filter(i =>
-        i.KATEGORI === category &&
-        (i.AKTIF === true || i.AKTIF === "TRUE")
-      );
+  fetch(API_URL).then(r => r.json()).then(data => {
+    const items = data.filter(i =>
+      i.KATEGORI === category &&
+      (i.AKTIF === true || i.AKTIF === "TRUE")
+    );
 
-      if (items.length === 0) {
-        alert("Tidak ada barang di kategori ini.");
-        return;
-      }
-
-      // pilih barang
-      let list = "Pilih barang (ketik nomor):\n\n";
-      items.forEach((i, idx) => {
-        list += `${idx + 1}. ${i["NAMA BARANG"]}\n`;
-      });
-
-      const idx = Number(prompt(list)) - 1;
-      if (!items[idx]) return;
-
-      const item = items[idx];
-
-      // pilih edit apa
-      const pilihan = prompt(
-        `Edit apa untuk "${item["NAMA BARANG"]}"?\n\n` +
-        `1 = Stok Dirumah (sekarang: ${item["STOCK TERSEDIA"]})\n` +
-        `2 = PKM (sekarang: ${item["STOCK TARGET"]})`
-      );
-
-      if (pilihan !== "1" && pilihan !== "2") return;
-
-      const nilai = prompt("Masukkan angka baru:");
-      if (nilai === null || isNaN(nilai)) return;
-
-      const payload = { nama: item["NAMA BARANG"] };
-      if (pilihan === "1") payload.stock = nilai;
-      if (pilihan === "2") payload.target = nilai;
-
-      fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }).then(() => location.reload());
+    let list = "Pilih barang (ketik nomor):\n\n";
+    items.forEach((i, idx) => {
+      list += `${idx + 1}. ${i["NAMA BARANG"]}\n`;
     });
+
+    const idx = Number(prompt(list)) - 1;
+    if (!items[idx]) return;
+
+    const item = items[idx];
+
+    const pilihan = prompt(
+      `Edit apa untuk "${item["NAMA BARANG"]}"?\n\n` +
+      `1 = Stok Dirumah (${item["STOCK TERSEDIA"]})\n` +
+      `2 = PKM (${item["STOCK TARGET"]})`
+    );
+
+    if (pilihan !== "1" && pilihan !== "2") return;
+
+    const nilai = prompt("Masukkan angka baru:");
+    if (nilai === null || isNaN(nilai)) return;
+
+    const payload = { nama: item["NAMA BARANG"] };
+    if (pilihan === "1") payload.stock = nilai;
+    if (pilihan === "2") payload.target = nilai;
+
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }).then(() => location.reload());
+  });
 }
 
 // 📤 EXPORT WHATSAPP
@@ -263,8 +251,8 @@ function exportWhatsApp() {
 }
 </script>
 
-</script>
 
 </body>
 </html>
+
 
