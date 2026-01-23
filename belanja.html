@@ -6,93 +6,41 @@
 <title>Tabel Belanja Bulanan</title>
 
 <style>
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
-  background: #f8fafc;
-  margin: 0;
-  padding: 14px;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 12px;
-}
-
-h2 {
-  margin-top: 22px;
-  font-size: 16px;
-  color: #334155;
-}
+body { font-family: system-ui; background: #f8fafc; padding: 14px; }
+h1 { text-align: center; }
+h2 { margin-top: 22px; }
 
 table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-  margin-bottom: 20px;
+  width: 100%; border-collapse: collapse; background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
 }
-
 th, td {
-  padding: 8px 6px;
-  font-size: 13px;
-  text-align: center;
+  padding: 8px; font-size: 13px; text-align: center;
   border-bottom: 1px solid #e5e7eb;
 }
+th { background: #f1f5f9; }
+td.name { text-align: left; font-weight: 600; }
+.buy { color: #dc2626; font-weight: 700; }
+tr.done { opacity: .45; text-decoration: line-through; }
 
-th {
-  background: #f1f5f9;
-  font-weight: 600;
+button {
+  width: 100%; margin: 6px 0; padding: 8px;
+  border: none; border-radius: 8px; cursor: pointer;
 }
-
-td.name {
-  text-align: left;
-  font-weight: 600;
-}
-
-.buy {
-  font-weight: 700;
-  color: #dc2626;
-}
-
-tr.done {
-  opacity: 0.45;
-  text-decoration: line-through;
-}
-
-input[type="checkbox"] {
-  transform: scale(1.2);
-}
-
-.btn-export {
-  background: #25D366; /* warna WhatsApp */
-  color: white;
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  margin-bottom: 14px;
-  font-size: 15px;
-  border: none;
-  cursor: pointer;
-}
+.btn-add { background: #16a34a; color: white; }
+.btn-manage { background: #2563eb; color: white; }
 </style>
 </head>
 
 <body>
 
 <h1>🛒 Tabel Belanja Bulanan</h1>
-
-<button class="btn-export" onclick="exportWhatsApp()">📤 Kirim ke WhatsApp</button>
-
-<div id="content">Memuat data...</div>
+<div id="content">Memuat...</div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyN8h-L0yTi34iFijHdbD7waX0C1ZFYavsByjmuY3khu5I3w1G54811dif4pkfAS_7K6w/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzpOLfTD8fo5u6rQZRI2EQ9LVauEWH_sgCXtVP56t9gL1mR2AKeZm4rpZwMVQSOUWVetw/exec";
 
-fetch(API_URL)
-  .then(res => res.json())
-  .then(data => render(data));
+fetch(API_URL).then(r => r.json()).then(render);
 
 function render(data) {
   const content = document.getElementById("content");
@@ -102,92 +50,83 @@ function render(data) {
 
   categories.forEach(cat => {
     let rows = "";
+    const items = data.filter(i => i.KATEGORI === cat && (i.AKTIF === true || i.AKTIF === "TRUE"));
 
-    data
-      .filter(i =>
-        i.KATEGORI === cat &&
-        (i.AKTIF === true || i.AKTIF === "TRUE")
-      )
-      .forEach(item => {
-        const stock = Number(item["STOCK TERSEDIA"]);
-        const target = Number(item["STOCK TARGET"]);
-        const beli = Math.max(target - stock, 0);
+    items.forEach(i => {
+      const beli = Math.max(i["STOCK TARGET"] - i["STOCK TERSEDIA"], 0);
+      if (beli <= 0) return;
 
-        if (beli > 0) {
-          const checked = item.DIBELI === true || item.DIBELI === "TRUE";
-          const satuan = item.SATUAN || "";
-
-          rows += `
-            <tr class="${checked ? "done" : ""}">
-              <td>
-                <input type="checkbox"
-                  ${checked ? "checked" : ""}
-                  onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked, this)">
-              </td>
-              <td class="name">${item["NAMA BARANG"]}</td>
-              <td class="buy">${beli} ${satuan}</td>
-              <td>${stock}</td>
-              <td>${target}</td>
-            </tr>
-          `;
-        }
-      });
+      rows += `
+        <tr>
+          <td class="name">${i["NAMA BARANG"]}</td>
+          <td class="buy">${beli} ${i.SATUAN || ""}</td>
+          <td>${i["STOCK TERSEDIA"]}</td>
+          <td>${i["STOCK TARGET"]}</td>
+        </tr>`;
+    });
 
     if (rows) {
       content.innerHTML += `
         <h2>${cat}</h2>
         <table>
-          <thead>
-            <tr>
-              <th>✔</th>
-              <th>Barang</th>
-              <th>Pembelian</th>
-              <th>Stok</th>
-              <th>Target</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
+          <tr><th>Barang</th><th>Pembelian</th><th>Stok</th><th>Target</th></tr>
+          ${rows}
         </table>
+        <button class="btn-add" onclick="addItem('${cat}')">➕ Tambah Barang</button>
+        <button class="btn-manage" onclick="manageItems('${cat}')">⚙️ Kelola Barang</button>
       `;
     }
   });
 }
 
-function toggleCheck(nama, checked, el) {
-  const row = el.closest("tr");
-  row.classList.toggle("done", checked);
+function addItem(cat) {
+  const nama = prompt("Nama barang:");
+  if (!nama) return;
+
+  const target = prompt("Target stok:", "1");
+  const satuan = prompt("Satuan (pcs/kg/liter):", "pcs");
 
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({
-      nama: nama,
-      dibeli: checked
+      action: "add",
+      KATEGORI: cat,
+      "NAMA BARANG": nama,
+      "STOCK TERSEDIA": 0,
+      "STOCK TARGET": target,
+      SATUAN: satuan
     })
-  });
+  }).then(() => location.reload());
 }
 
-function exportWhatsApp() {
-  let text = "🛒 DAFTAR BELANJA BULANAN\n\n";
+function manageItems(cat) {
+  fetch(API_URL).then(r => r.json()).then(data => {
+    const items = data.filter(i => i.KATEGORI === cat && (i.AKTIF === true || i.AKTIF === "TRUE"));
+    let text = "Edit / hapus barang:\n\n";
+    items.forEach(i => text += `${i["NAMA BARANG"]} = ${i["STOCK TERSEDIA"]}\n`);
 
-  document.querySelectorAll("tbody tr").forEach(row => {
-    if (!row.classList.contains("done")) {
-      const cols = row.querySelectorAll("td");
-      const nama = cols[1].innerText;
-      const beli = cols[2].innerText;
-      text += `• ${nama} – ${beli}\n`;
-    }
+    const res = prompt(text + "\n(Hapus: ketik 0)");
+    if (!res) return;
+
+    res.split("\n").forEach(line => {
+      const [nama, val] = line.split("=").map(s => s.trim());
+      if (!nama) return;
+
+      if (val === "0") {
+        fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ nama, action: "remove" })
+        });
+      } else if (!isNaN(val)) {
+        fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ nama, stock: val })
+        });
+      }
+    });
+
+    setTimeout(() => location.reload(), 600);
   });
-
-  if (text.trim() === "") {
-    alert("Semua barang sudah dibeli 👍");
-    return;
-  }
-
-  const encodedText = encodeURIComponent(text);
-  const waUrl = `https://wa.me/?text=${encodedText}`;
-  window.open(waUrl, "_blank");
 }
 </script>
 
