@@ -37,9 +37,20 @@ th { background: #f1f5f9; font-weight: 600; }
 td.name { text-align: left; font-weight: 600; }
 
 .buy { font-weight: 700; color: #dc2626; }
-tr.done { opacity: 0.45; text-decoration: line-through; }
+.buy.zero { color: #64748b; font-weight: 500; }
 
-input[type="checkbox"] { transform: scale(1.3); }
+tr.done {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+input[type="checkbox"] {
+  transform: scale(1.3);
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.3;
+}
 
 .actions {
   display: flex;
@@ -103,23 +114,25 @@ function render(data) {
       const stock = Number(item["STOCK TERSEDIA"]);
       const target = Number(item["STOCK TARGET"]);
       const beli = Math.max(target - stock, 0);
-      if (beli <= 0) return;
-
-      const checked = item.DIBELI === true || item.DIBELI === "TRUE";
       const satuan = item.SATUAN || "";
+      const checked = item.DIBELI === true || item.DIBELI === "TRUE";
 
       rows += `
-        <tr class="${checked ? "done" : ""}">
+        <tr class="${checked && beli > 0 ? "done" : ""}">
           <td class="name">${item["NAMA BARANG"]}</td>
-          <td class="buy">${beli} ${satuan}</td>
+          <td class="buy ${beli === 0 ? "zero" : ""}">
+            ${beli} ${satuan}
+          </td>
           <td>${stock}</td>
           <td>${target}</td>
           <td>
             <input type="checkbox"
-              ${checked ? "checked" : ""}
+              ${beli === 0 ? "disabled" : ""}
+              ${checked && beli > 0 ? "checked" : ""}
               onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked, this)">
           </td>
-        </tr>`;
+        </tr>
+      `;
     });
 
     if (rows) {
@@ -148,98 +161,20 @@ function render(data) {
 }
 
 function toggleCheck(nama, checked, el) {
+  if (el.disabled) return;
   el.closest("tr").classList.toggle("done", checked);
+
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({ nama, dibeli: checked })
   });
 }
 
-function addItem(cat) {
-  const nama = prompt("Nama barang:");
-  if (!nama) return;
-
-  const target = prompt("Target stok:", "1");
-  const satuan = prompt("Satuan (pcs/kg/liter):", "pcs");
-
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "add",
-      KATEGORI: cat,
-      "NAMA BARANG": nama,
-      "STOCK TERSEDIA": 0,
-      "STOCK TARGET": target,
-      SATUAN: satuan
-    })
-  }).then(() => location.reload());
-}
-
-function editStock(category) {
-  fetch(API_URL)
-    .then(r => r.json())
-    .then(data => {
-      const items = data.filter(i =>
-        i.KATEGORI === category &&
-        (i.AKTIF === true || i.AKTIF === "TRUE")
-      );
-
-      if (items.length === 0) {
-        alert("Tidak ada barang di kategori ini.");
-        return;
-      }
-
-      // 1️⃣ Tampilkan daftar bernomor
-      let list = "Pilih barang (ketik nomor):\n\n";
-      items.forEach((item, index) => {
-        list += `${index + 1}. ${item["NAMA BARANG"]}\n`;
-      });
-
-      const pilihanBarang = prompt(list);
-      const indexBarang = Number(pilihanBarang) - 1;
-
-      if (isNaN(indexBarang) || !items[indexBarang]) {
-        alert("Pilihan tidak valid.");
-        return;
-      }
-
-      const item = items[indexBarang];
-
-      // 2️⃣ Pilih mau edit apa
-      const pilihanEdit = prompt(
-        `Edit apa untuk "${item["NAMA BARANG"]}"?\n\n` +
-        `1 = Stok tersedia (saat ini: ${item["STOCK TERSEDIA"]})\n` +
-        `2 = Stok target (saat ini: ${item["STOCK TARGET"]})`
-      );
-
-      if (pilihanEdit !== "1" && pilihanEdit !== "2") {
-        alert("Pilihan tidak valid.");
-        return;
-      }
-
-      // 3️⃣ Masukkan nilai baru
-      const nilaiBaru = prompt("Masukkan angka baru:");
-      if (nilaiBaru === null || isNaN(nilaiBaru)) {
-        alert("Nilai tidak valid.");
-        return;
-      }
-
-      // 4️⃣ Kirim ke GAS
-      const payload = { nama: item["NAMA BARANG"] };
-
-      if (pilihanEdit === "1") payload.stock = nilaiBaru;
-      if (pilihanEdit === "2") payload.target = nilaiBaru;
-
-      fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(payload)
-      }).then(() => location.reload());
-    });
-}
 function exportWhatsApp() {
   let text = "🛒 DAFTAR BELANJA BULANAN\n\n";
   document.querySelectorAll("tbody tr").forEach(row => {
-    if (!row.classList.contains("done")) {
+    const checkbox = row.querySelector("input[type='checkbox']");
+    if (checkbox && !checkbox.disabled && !checkbox.checked) {
       const cols = row.querySelectorAll("td");
       text += `• ${cols[0].innerText} – ${cols[1].innerText}\n`;
     }
@@ -256,5 +191,3 @@ function exportWhatsApp() {
 
 </body>
 </html>
-
-
