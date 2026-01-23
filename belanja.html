@@ -117,26 +117,22 @@ function render(data) {
       const target = Number(item["STOCK TARGET"]);
       const beli = Math.max(target - stock, 0);
       const satuan = item.SATUAN || "";
-     const isDone = item.DIBELI === "TRUE";
-const isSafe = beli === 0;
 
-// DIBELI harus MENANG dari stok aman
-const isCrossed = isDone || isSafe;
-
+      const isDone = item.DIBELI === "TRUE";
+      const isSafe = beli === 0;
+      const isCrossed = isDone || isSafe;
 
       rows += `
-        <<tr class="${isCrossed ? "safe" : ""}">
+        <tr class="${isCrossed ? "safe" : ""}">
           <td class="name">${item["NAMA BARANG"]}</td>
           <td class="buy ${isSafe ? "zero" : ""}">${beli} ${satuan}</td>
           <td>${stock}</td>
           <td>${target}</td>
           <td>
             <input type="checkbox"
-  ${isDone ? "checked" : ""}
-  ${isSafe ? "disabled" : ""}
-  onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked, this)">
-
-              onchange="toggleCheck('NAMA_BARANG', this.checked, this)">
+              ${isDone ? "checked" : ""}
+              ${isSafe ? "disabled" : ""}
+              onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked)">
           </td>
         </tr>
       `;
@@ -165,14 +161,11 @@ const isCrossed = isDone || isSafe;
   });
 }
 
-function toggleCheck(nama, checked, el) {
-  const row = el.closest("tr");
-  row.classList.toggle("safe", checked);
-
+function toggleCheck(nama, checked) {
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({ nama, dibeli: checked })
-  });
+  }).then(() => fetch(API_URL).then(r => r.json()).then(render));
 }
 
 // ➕ TAMBAH BARANG
@@ -198,7 +191,7 @@ function addItem(cat) {
   }).then(() => location.reload());
 }
 
-// ✏️ EDIT STOK (MODE PILIH BARANG)
+// ✏️ EDIT STOK
 function editStock(category) {
   fetch(API_URL).then(r => r.json()).then(data => {
     const items = data.filter(i =>
@@ -254,16 +247,14 @@ function exportWhatsApp() {
     return;
   }
 
-  window.open(
-    `https://wa.me/?text=${encodeURIComponent(text)}`,
-    "_blank"
-  );
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
 </script>
 
 
 </body>
 </html>
+
 
 
 
