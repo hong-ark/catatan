@@ -117,20 +117,25 @@ function render(data) {
       const target = Number(item["STOCK TARGET"]);
       const beli = Math.max(target - stock, 0);
       const satuan = item.SATUAN || "";
-     const isSafe = beli === 0;
-const isDone = item.DIBELI === "TRUE";
-const isDisabled = isSafe || isDone;
+     const isDone = item.DIBELI === "TRUE";
+const isSafe = beli === 0;
+
+// DIBELI harus MENANG dari stok aman
+const isCrossed = isDone || isSafe;
+
 
       rows += `
-        <tr class="${isDisabled ? "safe" : ""}">
+        <<tr class="${isCrossed ? "safe" : ""}">
           <td class="name">${item["NAMA BARANG"]}</td>
           <td class="buy ${isSafe ? "zero" : ""}">${beli} ${satuan}</td>
           <td>${stock}</td>
           <td>${target}</td>
           <td>
             <input type="checkbox"
-  ${isDisabled ? "disabled" : ""}
   ${isDone ? "checked" : ""}
+  ${isSafe ? "disabled" : ""}
+  onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked, this)">
+
               onchange="toggleCheck('NAMA_BARANG', this.checked, this)">
           </td>
         </tr>
@@ -259,6 +264,7 @@ function exportWhatsApp() {
 
 </body>
 </html>
+
 
 
 
