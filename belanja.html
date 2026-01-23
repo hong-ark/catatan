@@ -167,7 +167,104 @@ function toggleCheck(nama, checked) {
 
 /* fungsi addItem(), editStock(), exportWhatsApp() 
    tetap sama seperti versi sebelumnya */
+  <script>
+// ➕ TAMBAH BARANG
+function addItem(cat) {
+  const nama = prompt("Nama barang:");
+  if (!nama) return;
+
+  const target = prompt("PKM (target stok):", "1");
+  if (target === null || isNaN(target)) return;
+
+  const satuan = prompt("Satuan (pcs/kg/liter):", "pcs");
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "add",
+      KATEGORI: cat,
+      "NAMA BARANG": nama,
+      "STOCK TERSEDIA": 0,
+      "STOCK TARGET": target,
+      SATUAN: satuan
+    })
+  }).then(() => location.reload());
+}
+
+// ✏️ EDIT STOK (MODE PILIH BARANG)
+function editStock(category) {
+  fetch(API_URL)
+    .then(r => r.json())
+    .then(data => {
+      const items = data.filter(i =>
+        i.KATEGORI === category &&
+        (i.AKTIF === true || i.AKTIF === "TRUE")
+      );
+
+      if (items.length === 0) {
+        alert("Tidak ada barang di kategori ini.");
+        return;
+      }
+
+      // pilih barang
+      let list = "Pilih barang (ketik nomor):\n\n";
+      items.forEach((i, idx) => {
+        list += `${idx + 1}. ${i["NAMA BARANG"]}\n`;
+      });
+
+      const idx = Number(prompt(list)) - 1;
+      if (!items[idx]) return;
+
+      const item = items[idx];
+
+      // pilih edit apa
+      const pilihan = prompt(
+        `Edit apa untuk "${item["NAMA BARANG"]}"?\n\n` +
+        `1 = Stok Dirumah (sekarang: ${item["STOCK TERSEDIA"]})\n` +
+        `2 = PKM (sekarang: ${item["STOCK TARGET"]})`
+      );
+
+      if (pilihan !== "1" && pilihan !== "2") return;
+
+      const nilai = prompt("Masukkan angka baru:");
+      if (nilai === null || isNaN(nilai)) return;
+
+      const payload = { nama: item["NAMA BARANG"] };
+      if (pilihan === "1") payload.stock = nilai;
+      if (pilihan === "2") payload.target = nilai;
+
+      fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }).then(() => location.reload());
+    });
+}
+
+// 📤 EXPORT WHATSAPP
+function exportWhatsApp() {
+  let text = "🛒 DAFTAR BELANJA BULANAN\n\n";
+
+  document.querySelectorAll("tbody tr").forEach(row => {
+    if (!row.classList.contains("safe")) {
+      const cols = row.querySelectorAll("td");
+      text += `• ${cols[0].innerText} – ${cols[1].innerText}\n`;
+    }
+  });
+
+  if (text.trim() === "") {
+    alert("Semua barang stok aman 👍");
+    return;
+  }
+
+  window.open(
+    `https://wa.me/?text=${encodeURIComponent(text)}`,
+    "_blank"
+  );
+}
+</script>
+
 </script>
 
 </body>
 </html>
+
