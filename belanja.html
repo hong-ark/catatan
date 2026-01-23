@@ -118,7 +118,7 @@ function render(data) {
       const beli = Math.max(target - stock, 0);
       const satuan = item.SATUAN || "";
 
-      const isDone = item.DIBELI === "TRUE";
+      const isDone = item.DIBELI === true || item.DIBELI === "TRUE";
       const isSafe = beli === 0;
       const isCrossed = isDone || isSafe;
 
@@ -254,6 +254,7 @@ function exportWhatsApp() {
 
 </body>
 </html>
+
 
 
 
