@@ -82,7 +82,7 @@ button {
 <div id="content">Memuat data...</div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzpOLfTD8fo5u6rQZRI2EQ9LVauEWH_sgCXtVP56t9gL1mR2AKeZm4rpZwMVQSOUWVetw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbww6-U__YRTcd0g-QTSeA8A07k5Y4vmGxl-oAtfNPyj0POlf0yyS9GfXvSCzCj42xJ_Xg/exec";
 
 fetch(API_URL).then(r => r.json()).then(render);
 
@@ -175,36 +175,53 @@ function addItem(cat) {
   }).then(() => location.reload());
 }
 
-function editStock(cat) {
-  fetch(API_URL).then(r => r.json()).then(data => {
-    const items = data.filter(i => i.KATEGORI === cat && (i.AKTIF === true || i.AKTIF === "TRUE"));
-    let text = "Edit stok (angka):\n\n";
-    items.forEach(i => text += `${i["NAMA BARANG"]} = ${i["STOCK TERSEDIA"]}\n`);
+function editStock(category) {
+  fetch(API_URL)
+    .then(r => r.json())
+    .then(data => {
+      const items = data.filter(i =>
+        i.KATEGORI === category &&
+        (i.AKTIF === true || i.AKTIF === "TRUE")
+      );
 
-    const res = prompt(text + "\n(Hapus barang: isi 0)");
-    if (!res) return;
+      // 1️⃣ Pilih barang
+      let list = "Pilih barang (ketik nama persis):\n\n";
+      items.forEach(i => list += `- ${i["NAMA BARANG"]}\n`);
 
-    res.split("\n").forEach(line => {
-      const [nama, val] = line.split("=").map(s => s.trim());
+      const nama = prompt(list);
       if (!nama) return;
 
-      if (val === "0") {
-        fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({ nama, action: "remove" })
-        });
-      } else if (!isNaN(val)) {
-        fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({ nama, stock: val })
-        });
+      const item = items.find(i => i["NAMA BARANG"] === nama);
+      if (!item) {
+        alert("Nama barang tidak ditemukan.");
+        return;
       }
+
+      // 2️⃣ Pilih mau edit apa
+      const pilihan = prompt(
+        `Edit apa untuk "${nama}"?\n\n` +
+        `1 = Stok tersedia (saat ini: ${item["STOCK TERSEDIA"]})\n` +
+        `2 = Stok target (saat ini: ${item["STOCK TARGET"]})`
+      );
+
+      if (pilihan !== "1" && pilihan !== "2") return;
+
+      // 3️⃣ Input angka baru
+      const nilaiBaru = prompt("Masukkan angka baru:");
+      if (nilaiBaru === null || isNaN(nilaiBaru)) return;
+
+      // Kirim ke GAS
+      const payload = { nama };
+
+      if (pilihan === "1") payload.stock = nilaiBaru;
+      if (pilihan === "2") payload.target = nilaiBaru;
+
+      fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }).then(() => location.reload());
     });
-
-    setTimeout(() => location.reload(), 600);
-  });
 }
-
 function exportWhatsApp() {
   let text = "🛒 DAFTAR BELANJA BULANAN\n\n";
   document.querySelectorAll("tbody tr").forEach(row => {
@@ -225,3 +242,4 @@ function exportWhatsApp() {
 
 </body>
 </html>
+
