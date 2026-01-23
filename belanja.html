@@ -39,18 +39,13 @@ td.name { text-align: left; font-weight: 600; }
 .buy { font-weight: 700; color: #dc2626; }
 .buy.zero { color: #64748b; font-weight: 500; }
 
-tr.done {
+tr.safe {
   opacity: 0.45;
   text-decoration: line-through;
 }
 
-input[type="checkbox"] {
-  transform: scale(1.3);
-}
-
-input[type="checkbox"]:disabled {
-  opacity: 0.3;
-}
+input[type="checkbox"] { transform: scale(1.3); }
+input[type="checkbox"]:disabled { opacity: 0.3; }
 
 .actions {
   display: flex;
@@ -115,66 +110,124 @@ function render(data) {
       const target = Number(item["STOCK TARGET"]);
       const beli = Math.max(target - stock, 0);
       const satuan = item.SATUAN || "";
-      const checked = item.DIBELI === true || item.DIBELI === "TRUE";
+      const isSafe = beli === 0;
 
       rows += `
-        <tr class="${checked && beli > 0 ? "done" : ""}">
+        <tr class="${isSafe ? "safe" : ""}">
           <td class="name">${item["NAMA BARANG"]}</td>
-          <td class="buy ${beli === 0 ? "zero" : ""}">
+          <td class="buy ${isSafe ? "zero" : ""}">
             ${beli} ${satuan}
           </td>
           <td>${stock}</td>
           <td>${target}</td>
           <td>
             <input type="checkbox"
-              ${beli === 0 ? "disabled" : ""}
-              ${checked && beli > 0 ? "checked" : ""}
+              ${isSafe ? "disabled" : ""}
+              ${item.DIBELI === "TRUE" && !isSafe ? "checked" : ""}
               onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked, this)">
           </td>
         </tr>
       `;
     });
 
-    if (rows) {
-      content.innerHTML += `
-        <h2>${cat}</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Barang</th>
-              <th>Pembelian</th>
-              <th>Stok</th>
-              <th>Target</th>
-              <th>✔</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+    content.innerHTML += `
+      <h2>${cat}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Barang</th>
+            <th>Pembelian</th>
+            <th>Stok</th>
+            <th>Target</th>
+            <th>✔</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
 
-        <div class="actions">
-          <button class="btn-add" onclick="addItem('${cat}')">➕ Tambah Barang</button>
-          <button class="btn-edit" onclick="editStock('${cat}')">✏️ Edit Stok</button>
-        </div>
-      `;
-    }
+      <div class="actions">
+        <button class="btn-add" onclick="addItem('${cat}')">➕ Tambah Barang</button>
+        <button class="btn-edit" onclick="editStock('${cat}')">✏️ Edit Stok</button>
+      </div>
+    `;
   });
 }
 
 function toggleCheck(nama, checked, el) {
   if (el.disabled) return;
-  el.closest("tr").classList.toggle("done", checked);
-
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({ nama, dibeli: checked })
   });
 }
 
+/* ➕ TAMBAH BARANG */
+function addItem(cat) {
+  const nama = prompt("Nama barang:");
+  if (!nama) return;
+
+  const target = prompt("Target stok:", "1");
+  if (target === null || isNaN(target)) return;
+
+  const satuan = prompt("Satuan (pcs/kg/liter):", "pcs");
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "add",
+      KATEGORI: cat,
+      "NAMA BARANG": nama,
+      "STOCK TERSEDIA": 0,
+      "STOCK TARGET": target,
+      SATUAN: satuan
+    })
+  }).then(() => location.reload());
+}
+
+/* ✏️ EDIT STOK (MODE PILIH) */
+function editStock(category) {
+  fetch(API_URL).then(r => r.json()).then(data => {
+    const items = data.filter(i =>
+      i.KATEGORI === category &&
+      (i.AKTIF === true || i.AKTIF === "TRUE")
+    );
+
+    let list = "Pilih barang (ketik nomor):\n\n";
+    items.forEach((i, idx) => {
+      list += `${idx + 1}. ${i["NAMA BARANG"]}\n`;
+    });
+
+    const idx = Number(prompt(list)) - 1;
+    if (!items[idx]) return;
+
+    const item = items[idx];
+
+    const pilihan = prompt(
+      `Edit apa untuk "${item["NAMA BARANG"]}"?\n\n` +
+      `1 = Stok tersedia (sekarang: ${item["STOCK TERSEDIA"]})\n` +
+      `2 = Stok target (sekarang: ${item["STOCK TARGET"]})`
+    );
+
+    if (pilihan !== "1" && pilihan !== "2") return;
+
+    const nilai = prompt("Masukkan angka baru:");
+    if (nilai === null || isNaN(nilai)) return;
+
+    const payload = { nama: item["NAMA BARANG"] };
+    if (pilihan === "1") payload.stock = nilai;
+    if (pilihan === "2") payload.target = nilai;
+
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }).then(() => location.reload());
+  });
+}
+
 function exportWhatsApp() {
   let text = "🛒 DAFTAR BELANJA BULANAN\n\n";
   document.querySelectorAll("tbody tr").forEach(row => {
-    const checkbox = row.querySelector("input[type='checkbox']");
-    if (checkbox && !checkbox.disabled && !checkbox.checked) {
+    if (!row.classList.contains("safe")) {
       const cols = row.querySelectorAll("td");
       text += `• ${cols[0].innerText} – ${cols[1].innerText}\n`;
     }
