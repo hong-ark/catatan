@@ -184,37 +184,51 @@ function editStock(category) {
         (i.AKTIF === true || i.AKTIF === "TRUE")
       );
 
-      // 1️⃣ Pilih barang
-      let list = "Pilih barang (ketik nama persis):\n\n";
-      items.forEach(i => list += `- ${i["NAMA BARANG"]}\n`);
-
-      const nama = prompt(list);
-      if (!nama) return;
-
-      const item = items.find(i => i["NAMA BARANG"] === nama);
-      if (!item) {
-        alert("Nama barang tidak ditemukan.");
+      if (items.length === 0) {
+        alert("Tidak ada barang di kategori ini.");
         return;
       }
 
+      // 1️⃣ Tampilkan daftar bernomor
+      let list = "Pilih barang (ketik nomor):\n\n";
+      items.forEach((item, index) => {
+        list += `${index + 1}. ${item["NAMA BARANG"]}\n`;
+      });
+
+      const pilihanBarang = prompt(list);
+      const indexBarang = Number(pilihanBarang) - 1;
+
+      if (isNaN(indexBarang) || !items[indexBarang]) {
+        alert("Pilihan tidak valid.");
+        return;
+      }
+
+      const item = items[indexBarang];
+
       // 2️⃣ Pilih mau edit apa
-      const pilihan = prompt(
-        `Edit apa untuk "${nama}"?\n\n` +
+      const pilihanEdit = prompt(
+        `Edit apa untuk "${item["NAMA BARANG"]}"?\n\n` +
         `1 = Stok tersedia (saat ini: ${item["STOCK TERSEDIA"]})\n` +
         `2 = Stok target (saat ini: ${item["STOCK TARGET"]})`
       );
 
-      if (pilihan !== "1" && pilihan !== "2") return;
+      if (pilihanEdit !== "1" && pilihanEdit !== "2") {
+        alert("Pilihan tidak valid.");
+        return;
+      }
 
-      // 3️⃣ Input angka baru
+      // 3️⃣ Masukkan nilai baru
       const nilaiBaru = prompt("Masukkan angka baru:");
-      if (nilaiBaru === null || isNaN(nilaiBaru)) return;
+      if (nilaiBaru === null || isNaN(nilaiBaru)) {
+        alert("Nilai tidak valid.");
+        return;
+      }
 
-      // Kirim ke GAS
-      const payload = { nama };
+      // 4️⃣ Kirim ke GAS
+      const payload = { nama: item["NAMA BARANG"] };
 
-      if (pilihan === "1") payload.stock = nilaiBaru;
-      if (pilihan === "2") payload.target = nilaiBaru;
+      if (pilihanEdit === "1") payload.stock = nilaiBaru;
+      if (pilihanEdit === "2") payload.target = nilaiBaru;
 
       fetch(API_URL, {
         method: "POST",
@@ -242,4 +256,5 @@ function exportWhatsApp() {
 
 </body>
 </html>
+
 
