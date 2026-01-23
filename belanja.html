@@ -117,19 +117,21 @@ function render(data) {
       const target = Number(item["STOCK TARGET"]);
       const beli = Math.max(target - stock, 0);
       const satuan = item.SATUAN || "";
-      const isSafe = beli === 0;
+     const isSafe = beli === 0;
+const isDone = item.DIBELI === "TRUE";
+const isDisabled = isSafe || isDone;
 
       rows += `
-        <tr class="${isSafe ? "safe" : ""}">
+        <tr class="${isDisabled ? "safe" : ""}">
           <td class="name">${item["NAMA BARANG"]}</td>
           <td class="buy ${isSafe ? "zero" : ""}">${beli} ${satuan}</td>
           <td>${stock}</td>
           <td>${target}</td>
           <td>
             <input type="checkbox"
-              ${isSafe ? "disabled" : ""}
-              ${item.DIBELI === "TRUE" && !isSafe ? "checked" : ""}
-              onchange="toggleCheck('${item["NAMA BARANG"]}', this.checked)">
+  ${isDisabled ? "disabled" : ""}
+  ${isDone ? "checked" : ""}
+              onchange="toggleCheck('NAMA_BARANG', this.checked, this)">
           </td>
         </tr>
       `;
@@ -158,7 +160,10 @@ function render(data) {
   });
 }
 
-function toggleCheck(nama, checked) {
+function toggleCheck(nama, checked, el) {
+  const row = el.closest("tr");
+  row.classList.toggle("safe", checked);
+
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({ nama, dibeli: checked })
@@ -254,5 +259,6 @@ function exportWhatsApp() {
 
 </body>
 </html>
+
 
 
